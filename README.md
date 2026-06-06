@@ -25,45 +25,111 @@ Modos oficiais:
 - Interface escura com GTK 4 + libadwaita.
 - Atualização automática das métricas principais a cada 2.5 segundos.
 
-## Qual instalação escolher?
+## Instalação
 
-Use **nativo local** se você quer que o app funcione como um monitor de sistema completo, vendo os processos e métricas reais do Fedora.
+Antes de instalar, escolha o modo de execução:
 
-Use **Flatpak sandbox** se você prefere isolamento do app. Nesse modo, o SysSense roda dentro do sandbox do Flatpak e algumas informações refletem o sandbox, não o host completo. A aba de processos, por exemplo, pode mostrar apenas `syssense` e `bwrap`.
+| Modo | Quando usar | O que esperar |
+|------|-------------|---------------|
+| **Nativo local** | Melhor opção para uso diário como monitor de sistema. | Mostra processos e métricas reais do Fedora, rodando como usuário normal. |
+| **Flatpak sandbox** | Melhor opção para testar o app com isolamento. | O app fica isolado; processos, serviços e logs podem refletir apenas o sandbox. |
 
 Os dois modos são somente leitura na v0.1: o SysSense não altera configurações, não encerra processos e não controla serviços.
 
-## Instalação nativa local
+### Opção recomendada: nativo local
 
-Este modo instala o app no usuário atual, sem instalar o SysSense como root.
+Use este modo se você quer que o SysSense funcione como na máquina de desenvolvimento, vendo o sistema real.
 
-Pré-requisito Fedora:
+1. Instale os pacotes GTK/libadwaita do Fedora:
 
-```bash
-sudo dnf install python3-gobject gtk4 libadwaita
-```
+   ```bash
+   sudo dnf install python3-gobject gtk4 libadwaita
+   ```
 
-Instalar:
+2. Clone o repositório e entre na pasta:
+
+   ```bash
+   git clone https://github.com/Marcos-VOC/SysSense.git
+   cd SysSense
+   ```
+
+3. Instale no usuário atual:
+
+   ```bash
+   ./packaging/native/install.sh
+   ```
+
+4. Abra pelo menu de aplicativos procurando por `SysSense`, ou rode:
+
+   ```bash
+   syssense
+   ```
+
+O instalador cria:
+
+- comando: `~/.local/bin/syssense`;
+- atalho: `~/.local/share/applications/br.com.syssense.desktop`;
+- ícone: `~/.local/share/icons/hicolor/scalable/apps/br.com.syssense.svg`.
+
+Para atualizar uma instalação nativa, entre na pasta do projeto atualizada e rode novamente:
 
 ```bash
 ./packaging/native/install.sh
 ```
 
-Rodar:
-
-```bash
-syssense
-```
-
-Remover:
+Para remover:
 
 ```bash
 ./packaging/native/uninstall.sh
 ```
 
-O instalador cria um atalho em `~/.local/share/applications/br.com.syssense.desktop` e usa `~/.local/bin/syssense` como comando.
+### Opção isolada: Flatpak sandbox
+
+Use este modo se você quer testar o app isolado. Por causa do sandbox, a aba de processos pode mostrar apenas processos internos do Flatpak, como `syssense` e `bwrap`. Para monitoramento completo do host, use a instalação nativa local.
+
+1. Instale as ferramentas:
+
+   ```bash
+   sudo dnf install flatpak flatpak-builder
+   flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+   flatpak install flathub org.gnome.Platform//50 org.gnome.Sdk//50
+   ```
+
+2. Clone o repositório e entre no manifest:
+
+   ```bash
+   git clone https://github.com/Marcos-VOC/SysSense.git
+   cd SysSense/packaging/flatpak
+   ```
+
+3. Construa:
+
+   ```bash
+   flatpak-builder --force-clean ../../flatpak-build br.com.syssense.yml
+   ```
+
+4. Rode sem instalar:
+
+   ```bash
+   flatpak-builder --run ../../flatpak-build br.com.syssense.yml syssense
+   ```
+
+5. Opcionalmente, instale no usuário atual:
+
+   ```bash
+   flatpak-builder --user --install --force-clean ../../flatpak-build br.com.syssense.yml
+   flatpak run br.com.syssense
+   ```
+
+Para remover a instalação Flatpak local:
+
+```bash
+flatpak uninstall --user br.com.syssense
+```
 
 ## Rodar em desenvolvimento
+
+Use este modo se você está editando o código localmente:
 
 ```bash
 python3 -m pip install -r requirements.txt
@@ -74,36 +140,6 @@ Ou diretamente:
 
 ```bash
 PYTHONPATH=src /usr/bin/python3 -m syssense.main
-```
-
-## Build Flatpak local
-
-Instale as ferramentas:
-
-```bash
-sudo dnf install flatpak flatpak-builder
-flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-flatpak install flathub org.gnome.Platform//50 org.gnome.Sdk//50
-```
-
-Construa:
-
-```bash
-cd packaging/flatpak
-flatpak-builder --force-clean ../../flatpak-build br.com.syssense.yml
-```
-
-Rode sem instalar:
-
-```bash
-flatpak-builder --run ../../flatpak-build br.com.syssense.yml syssense
-```
-
-Instale localmente:
-
-```bash
-flatpak-builder --user --install --force-clean ../../flatpak-build br.com.syssense.yml
-flatpak run br.com.syssense
 ```
 
 ## Estrutura do projeto
