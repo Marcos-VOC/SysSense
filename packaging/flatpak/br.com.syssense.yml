@@ -1,0 +1,52 @@
+app-id: br.com.syssense
+runtime: org.gnome.Platform
+runtime-version: "50"
+sdk: org.gnome.Sdk
+command: syssense
+
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=network
+  - --filesystem=/proc:ro
+  - --filesystem=/sys:ro
+  - --talk-name=org.freedesktop.systemd1
+  - --system-talk-name=org.freedesktop.systemd1
+
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /share/doc
+  - /share/man
+  - "*.a"
+  - "*.la"
+
+modules:
+  - name: python3-psutil
+    buildsystem: simple
+    build-commands:
+      - pip3 install --verbose --no-index --find-links="file://${PWD}" --prefix=${FLATPAK_DEST} "psutil==7.2.2"
+    sources:
+      - type: file
+        url: https://files.pythonhosted.org/packages/b5/70/5d8df3b09e25bce090399cf48e452d25c935ab72dad19406c77f4e828045/psutil-7.2.2-cp36-abi3-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl
+        sha256: 076a2d2f923fd4821644f5ba89f059523da90dc9014e85f8e45a5774ca5bc6f9
+        only-arches:
+          - x86_64
+
+  - name: python3-speedtest-cli
+    buildsystem: simple
+    build-commands:
+      - pip3 install --verbose --no-index --find-links="file://${PWD}" --prefix=${FLATPAK_DEST} "speedtest-cli==2.1.3"
+    sources:
+      - type: file
+        url: https://files.pythonhosted.org/packages/9f/39/65259b7054368b370d3183762484fa2c779ddc41633894d895f9d1720f45/speedtest_cli-2.1.3-py2.py3-none-any.whl
+        sha256: 75ff32c91af9ac1ce2b905476d6e92bd9eb2c0783f9e7d1939d74605c7d0b9ea
+
+  - name: syssense
+    buildsystem: simple
+    build-commands:
+      - pip3 install --verbose --no-build-isolation --no-deps --prefix=${FLATPAK_DEST} .
+    sources:
+      - type: dir
+        path: ../..

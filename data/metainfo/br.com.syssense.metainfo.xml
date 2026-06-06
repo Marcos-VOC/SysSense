@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>br.com.syssense</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="br.com.syssense">
+    <name>Marcos</name>
+  </developer>
+  <name>SysSense</name>
+  <summary>Monitor de sistema para Fedora/GNOME</summary>
+  <description>
+    <p>
+      SysSense e um monitor desktop para acompanhar CPU, memoria, armazenamento,
+      processos, rede, temperatura, servicos systemd e diagnosticos simples do sistema.
+    </p>
+    <p>
+      A interface usa GTK 4 e libadwaita, com layout escuro em cards e atualizacao
+      periodica das principais metricas.
+    </p>
+  </description>
+  <launchable type="desktop-id">br.com.syssense.desktop</launchable>
+  <categories>
+    <category>System</category>
+    <category>Monitor</category>
+    <category>Utility</category>
+  </categories>
+  <url type="homepage">https://github.com/marcos/syssense</url>
+  <releases>
+    <release version="0.1.0" date="2026-06-06">
+      <description>
+        <p>Primeira versao publica com dashboard, processos, disco, servicos, diagnostico e teste de internet.</p>
+      </description>
+    </release>
+  </releases>
+  <content_rating type="oars-1.1" />
+</component>

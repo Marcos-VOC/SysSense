@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "syssense"
+version = "0.1.0"
+description = "Monitor de sistema para Fedora/GNOME feito com GTK 4 e libadwaita."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "Marcos" }
+]
+keywords = ["fedora", "gnome", "gtk", "libadwaita", "monitor", "system"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: X11 Applications :: GTK",
+  "Intended Audience :: End Users/Desktop",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Topic :: System :: Monitoring"
+]
+dependencies = [
+  "psutil>=5.9.0",
+  "speedtest-cli>=2.1.3"
+]
+
+[project.scripts]
+syssense = "syssense.main:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.data-files]
+"share/applications" = ["data/applications/br.com.syssense.desktop"]
+"share/metainfo" = ["data/metainfo/br.com.syssense.metainfo.xml"]
+"share/icons/hicolor/scalable/apps" = ["data/icons/hicolor/scalable/apps/br.com.syssense.svg"]

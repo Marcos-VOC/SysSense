@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=SysSense
+Comment=Monitor do Sistema
+Exec=syssense
+Icon=br.com.syssense
+Terminal=false
+Categories=System;Monitor;
+StartupNotify=true
+StartupWMClass=br.com.syssense
