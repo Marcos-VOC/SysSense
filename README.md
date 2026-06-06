@@ -1,43 +1,43 @@
 # SysSense
 
-SysSense e um monitor de sistema para Fedora/GNOME feito em Python com GTK 4 e libadwaita.
+SysSense é um monitor de sistema para Fedora/GNOME feito em Python com GTK 4 e libadwaita.
 
-O foco da v0.1 e oferecer uma dashboard simples, bonita e local para acompanhar CPU, memoria, armazenamento, processos, rede, temperatura, uptime, servicos systemd, diagnosticos e teste de internet.
+O foco da v0.1 é oferecer uma dashboard simples, bonita e local para acompanhar CPU, memória, armazenamento, processos, rede, temperatura, uptime, serviços systemd, diagnósticos e teste de internet.
 
 ## Status
 
-Versao atual: `0.1.0`
+Versão atual: `0.1.0`
 
 Modos oficiais:
 
 - **Nativo local**: recomendado para monitoramento completo do Fedora.
-- **Flatpak sandbox**: recomendado para quem prefere isolamento, aceitando limitacoes em processos, servicos e logs.
+- **Flatpak sandbox**: recomendado para quem prefere isolamento, aceitando limitações em processos, serviços e logs.
 
 ## Funcionalidades
 
 - Dashboard em cards com CPU, RAM, armazenamento, temperatura, rede, carga do sistema, uptime e internet.
-- Grafico de armazenamento com selecao de particao ou visao geral.
-- Processos por memoria, por CPU e comparacao responsiva.
-- Aba de disco com particoes montadas e alertas de uso.
-- Aba de servicos systemd com falhas e logs recentes.
-- Diagnostico local baseado em regras.
+- Gráfico de armazenamento com seleção de partição ou visão geral.
+- Processos por memória, por CPU e comparação responsiva.
+- Aba de disco com partições montadas e alertas de uso.
+- Aba de serviços systemd com falhas e logs recentes.
+- Diagnóstico local baseado em regras.
 - Teste de velocidade sob demanda.
 - Interface escura com GTK 4 + libadwaita.
-- Atualizacao automatica das metricas principais a cada 2.5 segundos.
+- Atualização automática das métricas principais a cada 2.5 segundos.
 
-## Qual instalacao escolher?
+## Qual instalação escolher?
 
-Use **nativo local** se voce quer que o app funcione como um monitor de sistema completo, vendo os processos e metricas reais do Fedora.
+Use **nativo local** se você quer que o app funcione como um monitor de sistema completo, vendo os processos e métricas reais do Fedora.
 
-Use **Flatpak sandbox** se voce prefere isolamento do app. Nesse modo, o SysSense roda dentro do sandbox do Flatpak e algumas informacoes refletem o sandbox, nao o host completo. A aba de processos, por exemplo, pode mostrar apenas `syssense` e `bwrap`.
+Use **Flatpak sandbox** se você prefere isolamento do app. Nesse modo, o SysSense roda dentro do sandbox do Flatpak e algumas informações refletem o sandbox, não o host completo. A aba de processos, por exemplo, pode mostrar apenas `syssense` e `bwrap`.
 
-Os dois modos sao somente leitura na v0.1: o SysSense nao altera configuracoes, nao encerra processos e nao controla servicos.
+Os dois modos são somente leitura na v0.1: o SysSense não altera configurações, não encerra processos e não controla serviços.
 
-## Instalacao nativa local
+## Instalação nativa local
 
-Este modo instala o app no usuario atual, sem instalar o SysSense como root.
+Este modo instala o app no usuário atual, sem instalar o SysSense como root.
 
-Pre-requisito Fedora:
+Pré-requisito Fedora:
 
 ```bash
 sudo dnf install python3-gobject gtk4 libadwaita
@@ -111,19 +111,19 @@ flatpak run br.com.syssense
 ```text
 SysSense/
 ├── data/
-│   ├── applications/       # .desktop canonico
-│   ├── icons/              # icone hicolor
+│   ├── applications/       # .desktop canônico
+│   ├── icons/              # ícone hicolor
 │   └── metainfo/           # metadados AppStream
 ├── docs/
 │   ├── flatpak-spike.md
 │   └── release-v0.1.md
 ├── packaging/
 │   ├── flatpak/            # manifest Flatpak
-│   └── native/             # instalacao local sem root
+│   └── native/             # instalação local sem root
 ├── src/
 │   └── syssense/
-│       ├── collectors.py   # coleta de metricas
-│       ├── diagnostics.py  # regras de diagnostico
+│       ├── collectors.py   # coleta de métricas
+│       ├── diagnostics.py  # regras de diagnóstico
 │       ├── main.py         # Adw.Application
 │       └── window.py       # interface GTK/libadwaita
 ├── CHANGELOG.md
@@ -132,7 +132,7 @@ SysSense/
 └── run.sh
 ```
 
-## Validacao
+## Validação
 
 ```bash
 python3 -m compileall src/syssense
@@ -141,18 +141,18 @@ desktop-file-validate data/applications/br.com.syssense.desktop
 appstreamcli validate --no-net data/metainfo/br.com.syssense.metainfo.xml
 ```
 
-## Seguranca e privacidade
+## Segurança e privacidade
 
-SysSense e somente leitura na v0.1. Ele nao altera configuracoes do sistema, nao encerra processos, nao controla servicos e nao possui telemetria.
+SysSense é somente leitura na v0.1. Ele não altera configurações do sistema, não encerra processos, não controla serviços e não possui telemetria.
 
-A unica acao de rede intencional e o teste de velocidade, iniciado manualmente pelo usuario. Detalhes estao em `SECURITY.md` e `PRIVACY.md`.
+A única ação de rede intencional é o teste de velocidade, iniciado manualmente pelo usuário. Detalhes estão em `SECURITY.md` e `PRIVACY.md`.
 
 ## Roadmap
 
-- `v0.1.0`: primeira versao publica com instalacao nativa local e manifest Flatpak.
-- `v0.1.1`: ajustes apos testes reais de usuarios no Flatpak.
-- `v0.2.0`: melhorias em servicos/logs via DBus e capturas de tela oficiais.
+- `v0.1.0`: primeira versão pública com instalação nativa local e manifest Flatpak.
+- `v0.1.1`: ajustes após testes reais de usuários no Flatpak.
+- `v0.2.0`: melhorias em serviços/logs via DBus e capturas de tela oficiais.
 
-## Licenca
+## Licença
 
 MIT. Veja `LICENSE`.
