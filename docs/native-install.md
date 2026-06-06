@@ -1,15 +1,15 @@
-# Instalacao nativa local
+# Instalação nativa local
 
-Este modo e recomendado quando o objetivo e monitorar o Fedora real, como acontece durante o desenvolvimento local.
+Este modo é recomendado quando o objetivo é monitorar o Fedora real, como acontece durante o desenvolvimento local.
 
-## Caracteristicas
+## Características
 
-- Instala o pacote Python no usuario atual com `pip install --user`.
+- Instala o pacote Python no usuário atual com `pip install --user`.
 - Cria atalho local em `~/.local/share/applications`.
-- Copia o icone para `~/.local/share/icons`.
-- Nao instala o SysSense como root.
-- Nao cria servico em background.
-- Nao altera configuracoes do sistema.
+- Copia o ícone para `~/.local/share/icons`.
+- Não instala o SysSense como root.
+- Não cria serviço em background.
+- Não altera configurações do sistema.
 
 ## Requisitos Fedora
 
@@ -17,7 +17,7 @@ Este modo e recomendado quando o objetivo e monitorar o Fedora real, como aconte
 sudo dnf install python3-gobject gtk4 libadwaita
 ```
 
-As dependencias Python (`psutil` e `speedtest-cli`) sao instaladas pelo `pip` no ambiente do usuario.
+As dependências Python (`psutil` e `speedtest-cli`) são instaladas pelo `pip` no ambiente do usuário.
 
 ## Instalar
 
@@ -45,10 +45,10 @@ Ou pelo menu de aplicativos do GNOME.
 
 Mesmo em modo nativo, o SysSense continua sendo somente leitura na v0.1:
 
-- nao encerra processos;
-- nao altera servicos;
-- nao grava metricas em disco;
-- nao usa `shell=True`;
+- não encerra processos;
+- não altera serviços;
+- não grava métricas em disco;
+- não usa `shell=True`;
 - executa apenas consultas de leitura com timeout.
 
-O modo nativo tem menos isolamento que Flatpak, mas e o modo correto para um monitor que precisa enxergar processos e metricas reais do host.
+O modo nativo tem menos isolamento que Flatpak, mas é o modo correto para um monitor que precisa enxergar processos e métricas reais do host.

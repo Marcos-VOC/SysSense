@@ -10,12 +10,12 @@
   <summary>Monitor de sistema para Fedora/GNOME</summary>
   <description>
     <p>
-      SysSense e um monitor desktop para acompanhar CPU, memoria, armazenamento,
-      processos, rede, temperatura, servicos systemd e diagnosticos simples do sistema.
+      SysSense é um monitor desktop para acompanhar CPU, memória, armazenamento,
+      processos, rede, temperatura, serviços systemd e diagnósticos simples do sistema.
     </p>
     <p>
-      A interface usa GTK 4 e libadwaita, com layout escuro em cards e atualizacao
-      periodica das principais metricas.
+      A interface usa GTK 4 e libadwaita, com layout escuro em cards e atualização
+      periódica das principais métricas.
     </p>
   </description>
   <launchable type="desktop-id">br.com.syssense.desktop</launchable>
@@ -28,7 +28,7 @@
   <releases>
     <release version="0.1.0" date="2026-06-06">
       <description>
-        <p>Primeira versao publica com dashboard, processos, disco, servicos, diagnostico e teste de internet.</p>
+        <p>Primeira versão pública com dashboard, processos, disco, serviços, diagnóstico e teste de internet.</p>
       </description>
     </release>
   </releases>
