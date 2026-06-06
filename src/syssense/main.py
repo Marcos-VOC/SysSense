@@ -1,7 +1,7 @@
 import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
-from gi.repository import Adw
+from gi.repository import Adw, GLib
 import sys
 
 from .window import SysSenseWindow
@@ -9,6 +9,8 @@ from .window import SysSenseWindow
 
 class SysSenseApp(Adw.Application):
     def __init__(self):
+        GLib.set_prgname('br.com.syssense')
+        GLib.set_application_name('SysSense')
         super().__init__(application_id='br.com.syssense')
         self.connect('activate', self.on_activate)
 

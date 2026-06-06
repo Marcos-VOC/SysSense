@@ -15,7 +15,10 @@ if [[ -z "${PYTHON_BIN:-}" ]]; then
     exit 1
 fi
 
-if ! "$PYTHON_BIN" - <<'PY'
+CHECK_ENV=(env -u PYTHONPATH -u PYTHONHOME PYTHONNOUSERSITE=1)
+PIP_ENV=(env -u PYTHONPATH -u PYTHONHOME)
+
+if ! "${CHECK_ENV[@]}" "$PYTHON_BIN" - <<'PY'
 import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
@@ -32,7 +35,7 @@ EOF
     exit 1
 fi
 
-"$PYTHON_BIN" -m pip install --user "$PROJECT_DIR"
+"${PIP_ENV[@]}" "$PYTHON_BIN" -m pip install --user "$PROJECT_DIR"
 
 APP_ID="br.com.syssense"
 LOCAL_BIN="${HOME}/.local/bin/syssense"
@@ -40,6 +43,8 @@ APPLICATIONS_DIR="${HOME}/.local/share/applications"
 ICONS_DIR="${HOME}/.local/share/icons/hicolor/scalable/apps"
 DESKTOP_FILE="${APPLICATIONS_DIR}/${APP_ID}.desktop"
 ICON_FILE="${ICONS_DIR}/${APP_ID}.svg"
+LEGACY_DESKTOP_FILE="${APPLICATIONS_DIR}/syssense.desktop"
+LEGACY_ICON_FILE="${ICONS_DIR}/syssense.svg"
 
 if [[ ! -x "$LOCAL_BIN" ]]; then
     echo "O comando ${LOCAL_BIN} nao foi criado pelo pip." >&2
@@ -47,10 +52,20 @@ if [[ ! -x "$LOCAL_BIN" ]]; then
 fi
 
 mkdir -p "$APPLICATIONS_DIR" "$ICONS_DIR"
-sed "s|^Exec=.*|Exec=${LOCAL_BIN}|" \
+rm -f "$LEGACY_ICON_FILE"
+install -m 0644 "$PROJECT_DIR/data/icons/hicolor/scalable/apps/${APP_ID}.svg" "$ICON_FILE"
+sed \
+    -e "s|^Exec=.*|Exec=${LOCAL_BIN}|" \
+    -e "s|^Icon=.*|Icon=${ICON_FILE}|" \
     "$PROJECT_DIR/data/applications/${APP_ID}.desktop" > "$DESKTOP_FILE"
 chmod 0644 "$DESKTOP_FILE"
-install -m 0644 "$PROJECT_DIR/data/icons/hicolor/scalable/apps/${APP_ID}.svg" "$ICON_FILE"
+
+# Compatibilidade para favoritos antigos que apontavam para syssense.desktop.
+cp "$DESKTOP_FILE" "$LEGACY_DESKTOP_FILE"
+{
+    echo "NoDisplay=true"
+    echo "Hidden=false"
+} >> "$LEGACY_DESKTOP_FILE"
 
 if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database "$APPLICATIONS_DIR" >/dev/null 2>&1 || true
@@ -68,6 +83,9 @@ Comando:
 
 Atalho:
   ${DESKTOP_FILE}
+
+Icone:
+  ${ICON_FILE}
 
 Este modo roda como seu usuario normal e le as metricas reais do Fedora.
 EOF
