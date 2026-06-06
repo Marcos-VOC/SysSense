@@ -4,6 +4,8 @@ SysSense é um monitor de sistema para Fedora/GNOME feito em Python com GTK 4 e 
 
 O foco da v0.1 é oferecer uma dashboard simples, bonita e local para acompanhar CPU, memória, armazenamento, processos, rede, temperatura, uptime, serviços systemd, diagnósticos e teste de internet.
 
+![Dashboard do SysSense](docs/screenshots/dashboard.png)
+
 ## Status
 
 Versão atual: `0.1.0`
