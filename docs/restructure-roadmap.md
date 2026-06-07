@@ -91,7 +91,7 @@ Responsabilidades sugeridas:
 - `processes.py`: abas por memória, CPU e comparação;
 - `disk.py`: tabela/lista de partições;
 - `services.py`: serviços systemd e logs recentes;
-- `preferences.py`: popover de preferências e seleção de cards.
+- `preferences.py`: painel de preferências e seleção de cards.
 
 Benefícios:
 
@@ -124,8 +124,8 @@ Decisão atual: manter a UI em Python por enquanto e priorizar CSS/formatadores/
 
 ## Ordem Recomendada
 
-1. Extrair `formatters.py` com testes.
-2. Extrair `styles.css` sem alterar aparência.
+1. Extrair `formatters.py` com testes. Concluído na primeira etapa de reestruturação.
+2. Extrair `styles.css` sem alterar aparência. Concluído na primeira etapa de reestruturação.
 3. Criar `ui/sidebar.py` e mover a sidebar.
 4. Criar `ui/overview.py` e mover os cards principais.
 5. Mover Processos, Disco, Serviços e Preferências em etapas separadas.
@@ -140,3 +140,14 @@ Decisão atual: manter a UI em Python por enquanto e priorizar CSS/formatadores/
 - integração com IA externa.
 
 Esses pontos podem voltar ao roadmap depois que a base interna estiver mais simples de manter.
+
+## Estado Atual
+
+A primeira etapa já foi aplicada:
+
+- `src/syssense/resources/styles.css` concentra os estilos GTK.
+- `src/syssense/formatters.py` concentra formatação de unidades e textos de métricas.
+- `tests/test_formatters.py` cobre os formatadores extraídos.
+- `pyproject.toml` inclui os recursos CSS no pacote instalável.
+
+As próximas etapas devem focar na divisão gradual de `window.py` em módulos de UI menores.

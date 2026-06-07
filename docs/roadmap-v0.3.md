@@ -32,7 +32,7 @@ Fora do escopo: gráficos históricos, filtros avançados de logs e ordenação 
 ## v0.3.3 - Configuração Mínima
 
 - Criar configuração em `~/.config/syssense/config.json`.
-- Criar popover discreto de preferências.
+- Criar painel discreto de preferências.
 - Permitir escolher intervalo de atualização.
 - Permitir ligar/desligar toasts críticos.
 - Permitir exibir/ocultar o card de teste de internet.
@@ -42,6 +42,10 @@ Fora do escopo: gráficos históricos, filtros avançados de logs e ordenação 
 
 - Permitir escolher quais cards aparecem na dashboard.
 - Persistir essa escolha no mesmo arquivo de configuração.
+- Reorganizar automaticamente a grade quando cards forem ocultados.
+- Manter painéis de status e preferências dentro da janela do aplicativo.
+- Aplicar transições leves em navegação e alertas.
+- Iniciar reestruturação interna com `formatters.py` e `resources/styles.css`.
 - Não implementar temas visuais nesta série.
 - Não implementar reorganização manual de ordem dos cards.
 

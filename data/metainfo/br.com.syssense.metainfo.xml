@@ -28,7 +28,7 @@
   <releases>
     <release version="0.3.4" date="2026-06-07">
       <description>
-        <p>Preferências locais, seleção de cards visíveis, intervalos de atualização configuráveis e refinamentos de monitoramento.</p>
+        <p>Preferências locais, seleção de cards visíveis, painéis internos de status/configurações, transições leves e início da reestruturação interna.</p>
       </description>
     </release>
     <release version="0.2.1" date="2026-06-06">

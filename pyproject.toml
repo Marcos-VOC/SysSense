@@ -35,6 +35,9 @@ package-dir = { "" = "src" }
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+"syssense.resources" = ["*.css"]
+
 [tool.setuptools.data-files]
 "share/applications" = ["data/applications/br.com.syssense.desktop"]
 "share/metainfo" = ["data/metainfo/br.com.syssense.metainfo.xml"]

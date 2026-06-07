@@ -22,8 +22,11 @@ appstreamcli validate --no-net data/metainfo/br.com.syssense.metainfo.xml
 
 ```bash
 python3 -m pip install --no-deps --target /tmp/syssense-install-test .
+test -f /tmp/syssense-install-test/syssense/resources/styles.css
 rm -rf /tmp/syssense-install-test
 ```
+
+O teste acima confirma também se os recursos estáticos, como `styles.css`, entraram no pacote instalável.
 
 ## Scripts Nativos
 

@@ -22,12 +22,13 @@ Modos oficiais:
 - Processos por memória, por CPU e comparação responsiva.
 - Aba de disco com partições montadas e alertas de uso.
 - Aba de serviços systemd com falhas e logs recentes.
-- Alertas automáticos baseados em regras, com indicador na sidebar e mensagens curtas nos cards afetados.
+- Alertas automáticos baseados em regras, com indicador na sidebar, painel interno e mensagens curtas nos cards afetados.
 - Teste de velocidade sob demanda.
 - Alertas visuais discretos para uso crítico de memória e armazenamento elevado.
-- Preferências locais para intervalo de atualização, toasts críticos e cards visíveis.
+- Painel interno de preferências para intervalo de atualização, toasts críticos e cards visíveis.
 - Interface escura com GTK 4 + libadwaita.
 - Atualização automática configurável das métricas principais.
+- Transições leves entre seções, guias de processos e mensagens de alerta.
 
 ## Alertas automáticos
 
@@ -41,7 +42,7 @@ O SysSense avalia regras locais a cada atualização e mostra avisos sem exigir 
 | Swap | acima de 50% | não há nível crítico na v0.3 |
 | Serviços | qualquer serviço systemd com falha | não há nível crítico na v0.3 |
 
-Quando um alerta está ativo, o indicador da sidebar muda de estado, o painel de status lista os itens detectados e os cards afetados recebem uma borda e uma mensagem curta.
+Quando um alerta está ativo, o indicador da sidebar muda de estado, o painel interno de status lista os itens detectados e os cards afetados recebem uma borda e uma mensagem curta.
 
 ## Preferências
 
@@ -58,6 +59,8 @@ Preferências disponíveis na `v0.3.4`:
 - intervalo de atualização: `1s`, `2.5s`, `5s` ou `10s`;
 - exibir ou ocultar toasts de alertas críticos;
 - escolher quais cards aparecem na dashboard, incluindo o teste de internet.
+
+Os painéis de status e preferências abrem dentro da própria janela do app, sem popups externos do sistema.
 
 ## Instalação
 
@@ -189,6 +192,7 @@ SysSense/
 │   ├── native-install.md
 │   ├── release-v0.1.md
 │   ├── release-v0.2.md
+│   ├── release-v0.3.md
 │   ├── roadmap-v0.3.md
 │   ├── restructure-roadmap.md
 │   └── testing.md
@@ -198,8 +202,12 @@ SysSense/
 ├── src/
 │   └── syssense/
 │       ├── collectors.py   # coleta de métricas
+│       ├── config.py       # preferências locais persistentes
 │       ├── diagnostics.py  # regras dos alertas automáticos
+│       ├── formatters.py   # formatação de textos e unidades
 │       ├── main.py         # Adw.Application
+│       ├── resources/
+│       │   └── styles.css  # estilos GTK do aplicativo
 │       └── window.py       # interface GTK/libadwaita
 ├── CHANGELOG.md
 ├── pyproject.toml
@@ -215,6 +223,14 @@ python3 -m unittest
 python3 -m pip install --no-deps --target /tmp/syssense-install-test .
 desktop-file-validate data/applications/br.com.syssense.desktop
 appstreamcli validate --no-net data/metainfo/br.com.syssense.metainfo.xml
+bash -n packaging/native/install.sh packaging/native/uninstall.sh
+```
+
+Depois de testar o empacotamento local, remova artefatos temporários:
+
+```bash
+rm -rf /tmp/syssense-install-test build src/syssense.egg-info
+find . -type d -name __pycache__ -prune -exec rm -rf {} +
 ```
 
 ## Segurança e privacidade

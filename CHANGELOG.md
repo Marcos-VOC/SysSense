@@ -6,26 +6,34 @@ Todas as mudanças relevantes do SysSense serão documentadas aqui.
 
 ### Corrigido
 
-- Popover de preferências pode ser fechado pela engrenagem ou por clique fora da área.
-- Popover de preferências fecha automaticamente após alterar o intervalo de atualização.
+- Painel de preferências pode ser fechado pela engrenagem e fecha automaticamente após alterar o intervalo de atualização.
 - Cards ocultos na dashboard deixam de reservar espaço visual, permitindo que os cards seguintes preencham a grade.
 
 ### Experimental
 
 - Troca das seções principais passa a usar transição lateral leve.
 - Guias internas de Processos passam a usar transição lateral leve.
-- Popovers de alertas e configurações passam a revelar o conteúdo com animação curta.
 - Painel de riscos passa a abrir dentro da janela do aplicativo, sem popup externo do sistema.
 - Painel de configurações passa a abrir dentro da janela do aplicativo, com a mesma linguagem visual do painel de riscos.
 - Painéis internos de riscos e configurações ganharam mais distância da sidebar.
 - Mensagens curtas de alerta nos cards passam a aparecer e sumir com revelação suave.
+
+### Alterado
+
+- CSS da interface foi extraído para `src/syssense/resources/styles.css`.
+- Formatação de unidades, rede, uptime e carga do sistema foi extraída para `src/syssense/formatters.py`.
+- Empacotamento Python passa a incluir recursos CSS do pacote.
+
+### Adicionado
+
+- Testes unitários para formatadores de interface.
 
 ## [0.3.4] - 2026-06-07
 
 ### Adicionado
 
 - Preferências locais em `~/.config/syssense/config.json`.
-- Popover discreto de preferências na sidebar.
+- Painel discreto de preferências na sidebar.
 - Seleção de cards visíveis na dashboard.
 - Opções fixas de intervalo de atualização: `1s`, `2.5s`, `5s` e `10s`.
 - Opções para exibir/ocultar toasts críticos e cards da dashboard.

@@ -9,534 +9,14 @@ gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 
 from gi.repository import Gtk, GLib, Gdk, Adw, Pango
+from importlib import resources
 import threading
 import math
 import html
 import time
 from typing import Dict, Any
 
-from . import collectors, diagnostics, config
-
-
-# CSS customizável para design minimalista moderno
-SYSSENSE_CSS = """
-@define-color ss-bg #0f0f10;
-@define-color ss-surface #171719;
-@define-color ss-surface-2 #202124;
-@define-color ss-surface-3 #2a2b2f;
-@define-color ss-card #ddd9cf;
-@define-color ss-card-dark #1f2023;
-@define-color ss-card-hover #2c2d31;
-@define-color ss-text #e8e4d8;
-@define-color ss-muted #aaa69c;
-@define-color ss-ink #191a1d;
-@define-color ss-border rgba(232, 228, 216, 0.10);
-@define-color ss-accent #e8e4d8;
-@define-color ss-danger #ff7b72;
-@define-color ss-warning #e5c07b;
-@define-color ss-success #9ece6a;
-
-window,
-.dashboard-root {
-    background: @ss-bg;
-    color: @ss-text;
-}
-
-headerbar {
-    background: @ss-bg;
-    color: @ss-text;
-    box-shadow: none;
-    border: none;
-}
-
-.dashboard-shell {
-    background: @ss-bg;
-    padding: 10px;
-}
-
-.sidebar {
-    background: @ss-surface;
-    border: 1px solid @ss-border;
-    border-radius: 16px;
-    padding: 10px 8px;
-    margin: 0 10px 0 0;
-}
-
-.sidebar-compact {
-    padding: 12px 8px;
-}
-
-.brand-subtitle,
-.subtitle-text {
-    color: @ss-muted;
-    font-size: 13px;
-}
-
-.runtime-notice {
-    background: rgba(232, 228, 216, 0.06);
-    color: @ss-muted;
-    border: 1px solid @ss-border;
-    border-radius: 12px;
-    padding: 10px 12px;
-    margin: 8px 0 10px 0;
-}
-
-.status-pill {
-    color: @ss-muted;
-    font-size: 12px;
-    margin-top: 4px;
-}
-
-.nav-item {
-    background: transparent;
-    color: @ss-muted;
-    border: none;
-    border-radius: 11px;
-    padding: 9px 9px;
-    margin: 2px 0;
-}
-
-.nav-item:hover {
-    background: @ss-card-hover;
-    color: @ss-text;
-}
-
-.nav-item.active {
-    background: @ss-card;
-    color: @ss-ink;
-}
-
-.nav-icon {
-    color: inherit;
-}
-
-button.nav-item label,
-button.nav-item image,
-button.nav-item .nav-icon {
-    color: inherit;
-}
-
-button.nav-item.active label,
-button.nav-item.active image,
-button.nav-item.active .nav-icon,
-.nav-item.active .nav-icon {
-    color: @ss-ink;
-}
-
-.content-pane {
-    padding: 2px 0 0 0;
-}
-
-.page-title {
-    color: @ss-text;
-    font-size: 50px;
-    font-weight: 800;
-}
-
-.page-kicker {
-    color: @ss-muted;
-    font-size: 12px;
-    font-weight: 700;
-}
-
-.overview-flow {
-    background: transparent;
-}
-
-.overview-flow flowboxchild {
-    padding: 0;
-    border-radius: 16px;
-}
-
-.overview-flow flowboxchild:hover {
-    border-radius: 16px;
-    background: transparent;
-}
-
-
-
-.compact-overview .metric-card,
-.compact-overview .card-custom {
-    min-width: 168px;
-    min-height: 88px;
-    padding: 14px;
-    margin: 5px;
-}
-
-.compact-overview .wide-card {
-    min-width: 168px;
-}
-
-.card-custom,
-.panel-card {
-    border-radius: 18px;
-    padding: 18px;
-    margin: 7px;
-    background: @ss-card-dark;
-    color: @ss-text;
-    border: 1px solid @ss-border;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.20);
-}
-
-.metric-card {
-    min-width: 200px;
-    min-height: 112px;
-}
-
-.wide-card {
-    min-width: 414px;
-}
-
-.light-card {
-    background: @ss-card;
-    color: @ss-ink;
-}
-
-.light-card .subtitle-text {
-    color: rgba(25, 26, 29, 0.62);
-}
-
-.light-card.alert-card-medium {
-    border-color: rgba(145, 107, 21, 0.70);
-}
-
-.light-card.alert-card-high {
-    border-color: rgba(164, 49, 42, 0.72);
-}
-
-.section-title {
-    font-size: 17px;
-    font-weight: 700;
-    margin-top: 8px;
-    margin-bottom: 6px;
-    color: @ss-text;
-}
-
-button {
-    border-radius: 12px;
-}
-
-button.suggested-action {
-    background: @ss-card;
-    color: @ss-ink;
-    font-weight: 700;
-}
-
-
-.disk-chart-card {
-    min-width: 240px;
-    min-height: 184px;
-}
-
-.disk-chart-row {
-    margin-top: 4px;
-}
-
-.disk-partition-combo {
-    min-width: 78px;
-}
-
-.disk-info-box {
-    min-width: 118px;
-}
-
-.disk-chart-center {
-    font-size: 12px;
-    color: @ss-muted;
-}
-
-progressbar trough {
-    min-height: 8px;
-    border-radius: 999px;
-    background: rgba(232, 228, 216, 0.13);
-}
-
-progressbar progress {
-    border-radius: 999px;
-    background: @ss-accent;
-}
-
-.light-card progressbar trough {
-    background: rgba(0, 0, 0, 0.14);
-}
-
-.light-card progressbar progress {
-    background: @ss-ink;
-}
-
-notebook,
-notebook > stack,
-scrolledwindow {
-    background: transparent;
-    border: none;
-}
-
-notebook tab {
-    padding: 10px 18px;
-    margin: 0 6px 8px 0;
-    border-radius: 12px;
-    border-bottom: 3px solid transparent;
-    box-shadow: none;
-    color: @ss-muted;
-}
-
-notebook tab:checked {
-    background: @ss-card;
-    border-bottom-color: @ss-muted;
-    box-shadow: inset 0 -3px @ss-muted;
-    color: @ss-ink;
-}
-
-.process-tab-bar {
-    border-bottom: 1px solid rgba(232, 228, 216, 0.12);
-    margin-bottom: 12px;
-}
-
-.process-tab-button {
-    padding: 10px 18px;
-    margin: 0 6px 10px 0;
-    border-radius: 12px;
-    color: @ss-muted;
-    background: transparent;
-    border: none;
-    box-shadow: none;
-}
-
-.process-tab-button:hover {
-    background: rgba(232, 228, 216, 0.06);
-    color: @ss-text;
-}
-
-.process-tab-button.active {
-    background: @ss-card;
-    color: @ss-ink;
-    box-shadow: inset 0 -3px @ss-muted;
-}
-
-.process-page {
-    margin: 4px 0 0 0;
-}
-
-.process-card {
-    background: @ss-card-dark;
-    color: @ss-text;
-    border-radius: 18px;
-    border: 1px solid @ss-border;
-    padding: 8px;
-    margin: 12px 0 10px 0;
-}
-
-treeview {
-    background: @ss-card-dark;
-    color: @ss-text;
-    border-radius: 12px;
-    padding: 6px;
-}
-
-treeview header button {
-    background: @ss-surface-2;
-    color: @ss-muted;
-    border: none;
-    padding: 8px;
-}
-
-treeview header button:hover {
-    background: @ss-surface-3;
-    color: @ss-text;
-}
-
-treeview:selected,
-treeview.view:selected {
-    background: @ss-surface-3;
-    color: @ss-text;
-}
-
-.process-list {
-    background: transparent;
-}
-
-.compare-flow {
-    background: transparent;
-}
-
-.compare-flow flowboxchild {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    outline: none;
-    padding: 0;
-}
-
-.compare-flow flowboxchild:hover,
-.compare-flow flowboxchild:selected,
-.compare-flow flowboxchild:focus,
-.compare-flow flowboxchild:focus-visible {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    outline: none;
-}
-
-.compare-panel {
-    min-width: 300px;
-    margin-top: 10px;
-}
-
-.process-header {
-    color: @ss-muted;
-    font-size: 12px;
-    font-weight: 700;
-    padding: 8px 10px;
-}
-
-.process-list row {
-    background: transparent;
-    border-radius: 12px;
-    margin: 2px 0;
-    padding: 0;
-}
-
-.process-row {
-    padding: 9px 12px;
-    color: @ss-text;
-    border-radius: 10px;
-}
-
-.process-list row:hover .process-row {
-    background: @ss-surface-3;
-}
-
-.alert-high {
-    color: @ss-danger;
-    font-weight: 700;
-}
-
-.alert-medium {
-    color: @ss-warning;
-    font-weight: 700;
-}
-
-.inline-alert {
-    font-size: 11px;
-    font-weight: 700;
-    margin-top: 1px;
-}
-
-.alert-card-medium {
-    border-color: rgba(229, 192, 123, 0.48);
-}
-
-.alert-card-high {
-    border-color: rgba(255, 123, 114, 0.58);
-}
-
-.alert-indicator {
-    border-radius: 12px;
-    padding: 8px;
-    color: @ss-muted;
-    background: rgba(232, 228, 216, 0.05);
-}
-
-.alert-indicator-ok {
-    color: @ss-success;
-}
-
-.alert-indicator-medium {
-    color: @ss-warning;
-}
-
-.alert-indicator-high {
-    color: @ss-danger;
-}
-
-.prefs-button {
-    border-radius: 12px;
-    padding: 8px;
-    color: @ss-muted;
-    background: rgba(232, 228, 216, 0.05);
-}
-
-.prefs-button:hover {
-    background: @ss-card-hover;
-    color: @ss-text;
-}
-
-.prefs-popover {
-    padding: 14px;
-    min-width: 260px;
-    background: @ss-surface;
-    color: @ss-text;
-    border: 1px solid rgba(232, 228, 216, 0.10);
-    border-radius: 16px;
-    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
-}
-
-.prefs-row {
-    padding: 6px 0;
-}
-
-.alert-popover {
-    padding: 14px;
-    min-width: 240px;
-    background: @ss-surface;
-    color: @ss-text;
-    border: 1px solid rgba(232, 228, 216, 0.10);
-    border-radius: 16px;
-    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
-}
-
-.alert-overlay-panel {
-    margin: 0;
-}
-
-.prefs-overlay-panel {
-    margin: 0;
-}
-
-.alert-guide-title {
-    color: @ss-text;
-    font-size: 15px;
-    font-weight: 800;
-}
-
-.alert-guide-subtitle {
-    color: @ss-muted;
-    font-size: 12px;
-}
-
-.alert-guide-row {
-    background: @ss-card-dark;
-    border: 1px solid @ss-border;
-    border-radius: 12px;
-    padding: 10px;
-}
-
-.alert-guide-row.high {
-    border-color: rgba(255, 123, 114, 0.42);
-}
-
-.alert-guide-row.medium {
-    border-color: rgba(229, 192, 123, 0.36);
-}
-
-.alert-guide-chip {
-    font-size: 10px;
-    font-weight: 800;
-    border-radius: 999px;
-    padding: 2px 7px;
-}
-
-.alert-guide-chip.high {
-    color: @ss-danger;
-    background: rgba(255, 123, 114, 0.12);
-}
-
-.alert-guide-chip.medium {
-    color: @ss-warning;
-    background: rgba(229, 192, 123, 0.12);
-}
-"""
-
+from . import collectors, diagnostics, config, formatters
 
 class SysSenseWindow(Adw.ApplicationWindow):
     """Janela principal do SysSense com interface minimalista em GTK 4.0."""
@@ -569,7 +49,8 @@ class SysSenseWindow(Adw.ApplicationWindow):
     def _setup_css(self):
         """Aplica CSS customizado."""
         css_provider = Gtk.CssProvider()
-        css_provider.load_from_data(SYSSENSE_CSS.encode())
+        css_text = resources.files("syssense.resources").joinpath("styles.css").read_text(encoding="utf-8")
+        css_provider.load_from_data(css_text.encode())
         display = Gdk.Display.get_default()
         Gtk.StyleContext.add_provider_for_display(
             display,
@@ -866,7 +347,7 @@ class SysSenseWindow(Adw.ApplicationWindow):
 
     def _format_refresh_option(self, seconds: float) -> str:
         """Formata opção de intervalo."""
-        return f"{int(seconds)}s" if seconds.is_integer() else f"{seconds:.1f}s"
+        return formatters.format_refresh_option(seconds)
 
     def _save_user_config(self):
         """Persiste preferências do usuário."""
@@ -1375,7 +856,7 @@ class SysSenseWindow(Adw.ApplicationWindow):
             free = sum(part.get('free', 0) for part in partitions)
             pct = (used / total * 100) if total else 0
             self.disk_label.set_text(f"{pct:.1f}% usado")
-            self.disk_chart_detail_label.set_text(f"{self._format_disk_size(used)} / {self._format_disk_size(total)}")
+            self.disk_chart_detail_label.set_text(f"{formatters.format_disk_size(used)} / {formatters.format_disk_size(total)}")
             self.disk_progressbar.set_fraction(min(pct / 100, 1))
         else:
             part = next((p for p in partitions if self._disk_partition_title(p) == selected), partitions[0])
@@ -1383,46 +864,16 @@ class SysSenseWindow(Adw.ApplicationWindow):
             used = part.get('used', 0)
             total = part.get('total', 0)
             self.disk_label.set_text(f"{pct:.1f}% usado")
-            self.disk_chart_detail_label.set_text(f"{self._format_disk_size(used)} / {self._format_disk_size(total)}")
+            self.disk_chart_detail_label.set_text(f"{formatters.format_disk_size(used)} / {formatters.format_disk_size(total)}")
             self.disk_progressbar.set_fraction(min(pct / 100, 1))
         self.disk_chart.queue_draw()
-
-    def _format_disk_size(self, value: int | float) -> str:
-        """Formata bytes de disco sem esconder partições pequenas."""
-        value = float(value or 0)
-        gib = value / (1024**3)
-        if gib >= 1:
-            return f"{gib:.1f}G"
-        mib = value / (1024**2)
-        return f"{mib:.0f}M"
-
-    def _format_rate(self, bytes_per_second: float) -> str:
-        """Formata uma taxa de rede em unidades legíveis."""
-        value = max(float(bytes_per_second or 0), 0)
-        if value >= 1024**2:
-            return f"{value / (1024**2):.1f} MB/s"
-        if value >= 1024:
-            return f"{value / 1024:.0f} KB/s"
-        return f"{value:.0f} B/s"
-
-    def _format_total_transfer(self, value: int | float) -> str:
-        """Formata total acumulado de rede."""
-        value = float(value or 0)
-        if value >= 1024**3:
-            return f"{value / (1024**3):.2f} GB"
-        if value >= 1024**2:
-            return f"{value / (1024**2):.1f} MB"
-        return f"{value / 1024:.0f} KB"
 
     def _format_network_text(self, rede: Dict[str, Any]) -> tuple[str, str]:
         """Calcula velocidade atual de rede e tooltip com acumulado."""
         now = time.monotonic()
         sent = rede.get('bytes_sent', 0)
         recv = rede.get('bytes_recv', 0)
-        tooltip = (
-            f"Acumulado recebido: {self._format_total_transfer(recv)}\n"
-            f"Acumulado enviado: {self._format_total_transfer(sent)}"
-        )
+        tooltip = formatters.format_network_tooltip(recv, sent)
 
         previous = self.previous_network_sample
         self.previous_network_sample = {
@@ -1431,12 +882,12 @@ class SysSenseWindow(Adw.ApplicationWindow):
             'bytes_recv': recv,
         }
         if not previous:
-            return "↓ 0 B/s | ↑ 0 B/s", tooltip
+            return formatters.format_network_rates(0, 0), tooltip
 
         elapsed = max(now - previous.get('time', now), 0.1)
         down_rate = max(recv - previous.get('bytes_recv', recv), 0) / elapsed
         up_rate = max(sent - previous.get('bytes_sent', sent), 0) / elapsed
-        return f"↓ {self._format_rate(down_rate)} | ↑ {self._format_rate(up_rate)}", tooltip
+        return formatters.format_network_rates(down_rate, up_rate), tooltip
 
     def _sync_disk_partition_combo(self, partitions: list):
         """Sincroniza opções do seletor de partições."""
@@ -1829,21 +1280,9 @@ class SysSenseWindow(Adw.ApplicationWindow):
         self.net_label.set_tooltip_text(net_tooltip)
         
         load = cpu.get('load_avg', {})
-        self.load_label.set_text(f"1min: {load.get('1min', 0):.2f} | 5min: {load.get('5min', 0):.2f} | 15min: {load.get('15min', 0):.2f}")
+        self.load_label.set_text(formatters.format_load_average(load))
         
-        self.uptime_label.set_text(self._format_uptime(uptime))
-    
-    def _format_uptime(self, uptime: Dict[str, Any]) -> str:
-        """Formata o tempo ligado mesmo quando só há segundos disponíveis."""
-        if uptime.get('uptime_formatted'):
-            return uptime['uptime_formatted']
-        seconds = uptime.get('uptime_seconds')
-        if seconds is None:
-            return 'N/A'
-        days = int(seconds) // 86400
-        hours = (int(seconds) % 86400) // 3600
-        minutes = (int(seconds) % 3600) // 60
-        return f"{days}d {hours}h {minutes}m"
+        self.uptime_label.set_text(formatters.format_uptime(uptime))
 
     def _update_automatic_alerts(self, data: Dict[str, Any]):
         """Atualiza o diagnóstico automático e os alertas visuais."""
