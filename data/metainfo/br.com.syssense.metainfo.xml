@@ -11,7 +11,7 @@
   <description>
     <p>
       SysSense é um monitor desktop para acompanhar CPU, memória, armazenamento,
-      processos, rede, temperatura, serviços systemd e diagnósticos simples do sistema.
+      processos, rede, temperatura, serviços systemd e alertas automáticos do sistema.
     </p>
     <p>
       A interface usa GTK 4 e libadwaita, com layout escuro em cards e atualização
@@ -24,8 +24,18 @@
     <category>Monitor</category>
     <category>Utility</category>
   </categories>
-  <url type="homepage">https://github.com/marcos/syssense</url>
+  <url type="homepage">https://github.com/Marcos-VOC/SysSense</url>
   <releases>
+    <release version="0.2.1" date="2026-06-06">
+      <description>
+        <p>Estabilização com painel de status, testes leves, documentação revisada e instalação nativa consolidada como modo recomendado.</p>
+      </description>
+    </release>
+    <release version="0.2.0" date="2026-06-06">
+      <description>
+        <p>Alertas visuais, rede em tempo real, diagnóstico automático e melhorias de feedback nas abas técnicas.</p>
+      </description>
+    </release>
     <release version="0.1.0" date="2026-06-06">
       <description>
         <p>Primeira versão pública com dashboard, processos, disco, serviços, diagnóstico e teste de internet.</p>

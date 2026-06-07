@@ -2,7 +2,7 @@
 
 ## Escopo
 
-SysSense é um monitor local de sistema. A v0.1 foi desenhada para ser somente leitura:
+SysSense é um monitor local de sistema. A versão atual foi desenhada para ser somente leitura:
 
 - não altera configurações do sistema;
 - não mata processos;
@@ -46,7 +46,7 @@ O modo nativo local é recomendado para monitoramento completo do host. Ele roda
 
 ## Relatar vulnerabilidades
 
-Para a v0.1, abra uma issue privada ou entre em contato com o mantenedor antes de divulgar publicamente uma falha. Inclua:
+Para a versão atual, abra uma issue privada ou entre em contato com o mantenedor antes de divulgar publicamente uma falha. Inclua:
 
 - versão do SysSense;
 - forma de instalação;
@@ -54,11 +54,11 @@ Para a v0.1, abra uma issue privada ou entre em contato com o mantenedor antes d
 - passos de reprodução;
 - impacto esperado.
 
-## Principios de manutencao
+## Princípios de manutenção
 
 - Preferir APIs estruturadas a parsing textual.
 - Usar subprocessos apenas para consultas de leitura.
 - Nunca usar `shell=True`.
-- Limitar timeouts de operacoes bloqueantes.
+- Limitar timeouts de operações bloqueantes.
 - Sanitizar texto vindo de comandos externos antes de exibir na UI.
 - Manter permissões Flatpak minimizadas.

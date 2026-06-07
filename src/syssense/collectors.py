@@ -8,8 +8,8 @@ import psutil
 import os
 import subprocess
 import re
-from typing import Dict, List, Any
-from datetime import datetime, timedelta
+from typing import Dict, Any
+from datetime import datetime
 
 
 SAFE_SUBPROCESS_ENV = {
@@ -20,16 +20,16 @@ SAFE_SUBPROCESS_ENV = {
 
 
 def get_runtime_info() -> Dict[str, Any]:
-    """Retorna informacoes sobre o modo de execucao do app."""
+    """Retorna informações sobre o modo de execução do app."""
     is_flatpak = bool(os.environ.get('FLATPAK_ID')) or os.path.exists('/.flatpak-info')
     return {
         'is_flatpak': is_flatpak,
         'mode': 'sandbox' if is_flatpak else 'native',
         'process_scope': 'sandbox' if is_flatpak else 'host',
         'description': (
-            'Executando em Flatpak sandbox. Algumas metricas podem refletir o sandbox.'
+            'Executando em Flatpak sandbox. Algumas métricas podem refletir o sandbox.'
             if is_flatpak
-            else 'Executando nativamente. Metricas refletem o host conforme permissoes do usuario.'
+            else 'Executando nativamente. Métricas refletem o host conforme permissões do usuário.'
         ),
     }
 
@@ -42,7 +42,7 @@ def _clean_text(value: Any, max_chars: int = 500) -> str:
 
 
 def _run_readonly_command(command: list[str], timeout: int = 5) -> subprocess.CompletedProcess:
-    """Executa comandos de consulta sem shell e com ambiente previsivel."""
+    """Executa comandos de consulta sem shell e com ambiente previsível."""
     return subprocess.run(
         command,
         capture_output=True,

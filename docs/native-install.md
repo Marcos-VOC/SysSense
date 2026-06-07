@@ -43,7 +43,7 @@ Ou pelo menu de aplicativos do GNOME.
 
 ## Segurança
 
-Mesmo em modo nativo, o SysSense continua sendo somente leitura na v0.1:
+Mesmo em modo nativo, o SysSense continua sendo somente leitura:
 
 - não encerra processos;
 - não altera serviços;

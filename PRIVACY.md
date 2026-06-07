@@ -31,4 +31,4 @@ Logs do sistema podem conter nomes de usuário, caminhos locais, nomes de dispos
 
 ## Arquivos
 
-O SysSense não grava histórico de métricas, logs ou resultados de diagnóstico em disco na v0.1.
+O SysSense não grava histórico de métricas, logs ou resultados de diagnóstico em disco na versão atual.

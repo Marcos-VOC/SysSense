@@ -1,6 +1,6 @@
 # Spike Flatpak
 
-Este documento registra a estratégia técnica para distribuir o SysSense como Flatpak na v0.1.
+Este documento registra a estratégia técnica para manter um empacotamento Flatpak do SysSense como opção isolada.
 
 ## Objetivo
 
@@ -99,7 +99,7 @@ Ao rodar o app empacotado, verificar:
 - Tempo ligado aparece corretamente.
 - Teste de internet roda ou mostra erro curto sem deformar o card.
 - Aba Serviços lista falhas ou exibe estado vazio sem travar.
-- Diagnóstico executa usando os dados coletados.
+- Alertas automáticos executam usando os dados coletados.
 
 ## Resultado do spike
 
@@ -136,7 +136,7 @@ Rodar o build em uma máquina Fedora com Flatpak instalado e preencher a tabela 
 |------|----------|-----------|
 | Dashboard | CPU/RAM/disco/rede/uptime aparecem | Pendente |
 | Processos | Lista limitada ao sandbox, com aviso na UI | Confirmado |
-| Temperatura | Valor real ou fallback amigavel | Pendente |
+| Temperatura | Valor real ou fallback amigável | Pendente |
 | Serviços | Falhas systemd ou fallback amigável | Pendente |
 | Logs | Logs recentes ou fallback amigável | Pendente |
 | Speedtest | Resultado ou erro curto com tooltip | Pendente |

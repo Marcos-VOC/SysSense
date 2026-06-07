@@ -11,7 +11,7 @@ if [[ ! -x "$PYTHON_BIN" ]]; then
 fi
 
 if [[ -z "${PYTHON_BIN:-}" ]]; then
-    echo "Python 3 nao encontrado." >&2
+    echo "Python 3 não encontrado." >&2
     exit 1
 fi
 
@@ -26,7 +26,7 @@ from gi.repository import Gtk, Adw
 PY
 then
     cat >&2 <<'EOF'
-GTK 4/libadwaita para Python nao estao disponiveis.
+GTK 4/libadwaita para Python não estão disponíveis.
 
 No Fedora, instale os pacotes do sistema e rode este script novamente:
 
@@ -47,7 +47,7 @@ LEGACY_DESKTOP_FILE="${APPLICATIONS_DIR}/syssense.desktop"
 LEGACY_ICON_FILE="${ICONS_DIR}/syssense.svg"
 
 if [[ ! -x "$LOCAL_BIN" ]]; then
-    echo "O comando ${LOCAL_BIN} nao foi criado pelo pip." >&2
+    echo "O comando ${LOCAL_BIN} não foi criado pelo pip." >&2
     exit 1
 fi
 
@@ -84,8 +84,8 @@ Comando:
 Atalho:
   ${DESKTOP_FILE}
 
-Icone:
+Ícone:
   ${ICON_FILE}
 
-Este modo roda como seu usuario normal e le as metricas reais do Fedora.
+Este modo roda como seu usuário normal e lê as métricas reais do Fedora.
 EOF
