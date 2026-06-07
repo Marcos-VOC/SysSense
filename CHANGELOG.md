@@ -10,6 +10,16 @@ Todas as mudanças relevantes do SysSense serão documentadas aqui.
 - Popover de preferências fecha automaticamente após alterar o intervalo de atualização.
 - Cards ocultos na dashboard deixam de reservar espaço visual, permitindo que os cards seguintes preencham a grade.
 
+### Experimental
+
+- Troca das seções principais passa a usar transição lateral leve.
+- Guias internas de Processos passam a usar transição lateral leve.
+- Popovers de alertas e configurações passam a revelar o conteúdo com animação curta.
+- Painel de riscos passa a abrir dentro da janela do aplicativo, sem popup externo do sistema.
+- Painel de configurações passa a abrir dentro da janela do aplicativo, com a mesma linguagem visual do painel de riscos.
+- Painéis internos de riscos e configurações ganharam mais distância da sidebar.
+- Mensagens curtas de alerta nos cards passam a aparecer e sumir com revelação suave.
+
 ## [0.3.4] - 2026-06-07
 
 ### Adicionado

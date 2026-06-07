@@ -287,6 +287,32 @@ notebook tab:checked {
     color: @ss-ink;
 }
 
+.process-tab-bar {
+    border-bottom: 1px solid rgba(232, 228, 216, 0.12);
+    margin-bottom: 12px;
+}
+
+.process-tab-button {
+    padding: 10px 18px;
+    margin: 0 6px 10px 0;
+    border-radius: 12px;
+    color: @ss-muted;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.process-tab-button:hover {
+    background: rgba(232, 228, 216, 0.06);
+    color: @ss-text;
+}
+
+.process-tab-button.active {
+    background: @ss-card;
+    color: @ss-ink;
+    box-shadow: inset 0 -3px @ss-muted;
+}
+
 .process-page {
     margin: 4px 0 0 0;
 }
@@ -449,13 +475,6 @@ treeview.view:selected {
     padding: 6px 0;
 }
 
-popover.alert-guide-popover > contents {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    padding: 0;
-}
-
 .alert-popover {
     padding: 14px;
     min-width: 240px;
@@ -464,6 +483,14 @@ popover.alert-guide-popover > contents {
     border: 1px solid rgba(232, 228, 216, 0.10);
     border-radius: 16px;
     box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+}
+
+.alert-overlay-panel {
+    margin: 0;
+}
+
+.prefs-overlay-panel {
+    margin: 0;
 }
 
 .alert-guide-title {
@@ -602,6 +629,10 @@ class SysSenseWindow(Adw.ApplicationWindow):
     
     def _create_content_page(self) -> Gtk.Widget:
         """Página com conteúdo principal em estilo dashboard."""
+        overlay = Gtk.Overlay()
+        overlay.set_hexpand(True)
+        overlay.set_vexpand(True)
+
         shell = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
         shell.get_style_context().add_class("dashboard-shell")
         shell.set_hexpand(True)
@@ -637,8 +668,11 @@ class SysSenseWindow(Adw.ApplicationWindow):
         self.page_stack.set_vexpand(True)
         content.append(self.page_stack)
         shell.append(content)
-        
-        return shell
+
+        overlay.set_child(shell)
+        overlay.add_overlay(self._create_alert_overlay_panel())
+        overlay.add_overlay(self._create_preferences_overlay_panel())
+        return overlay
 
     def _create_sidebar(self) -> Gtk.Widget:
         """Cria a barra lateral de navegação."""
@@ -685,24 +719,34 @@ class SysSenseWindow(Adw.ApplicationWindow):
 
     def _create_alert_indicator(self) -> Gtk.Widget:
         """Cria indicador automático de alertas na sidebar."""
-        button = Gtk.MenuButton()
-        button.set_icon_name("emblem-ok-symbolic")
+        button = Gtk.Button.new_from_icon_name("emblem-ok-symbolic")
+        button.set_has_frame(False)
         button.set_has_tooltip(False)
         button.get_style_context().add_class("alert-indicator")
         button.get_style_context().add_class("alert-indicator-ok")
+        button.connect("clicked", self._toggle_alert_panel)
         self.alert_indicator = button
+        return button
 
-        popover = Gtk.Popover()
-        popover.get_style_context().add_class("alert-guide-popover")
-        popover.set_position(Gtk.PositionType.RIGHT)
-        popover_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        popover_box.get_style_context().add_class("alert-popover")
-        popover_box.set_size_request(260, -1)
-        self.alert_popover_box = popover_box
+    def _create_alert_overlay_panel(self) -> Gtk.Widget:
+        """Cria painel interno de alertas sem popup externo."""
+        self.alert_panel_revealer = Gtk.Revealer()
+        self.alert_panel_revealer.set_transition_type(Gtk.RevealerTransitionType.SLIDE_UP)
+        self.alert_panel_revealer.set_transition_duration(150)
+        self.alert_panel_revealer.set_halign(Gtk.Align.START)
+        self.alert_panel_revealer.set_valign(Gtk.Align.END)
+        self.alert_panel_revealer.set_margin_start(self._overlay_panel_start_margin())
+        self.alert_panel_revealer.set_margin_bottom(18)
+
+        panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        panel.get_style_context().add_class("alert-popover")
+        panel.get_style_context().add_class("alert-overlay-panel")
+        panel.set_size_request(260, -1)
+        self.alert_popover_box = panel
         self.alert_popover_title = Gtk.Label(label="Status do Sistema")
         self.alert_popover_title.set_halign(Gtk.Align.START)
         self.alert_popover_title.get_style_context().add_class("alert-guide-title")
-        popover_box.append(self.alert_popover_title)
+        panel.append(self.alert_popover_title)
         self.alert_popover_subtitle = Gtk.Label(label="Nenhum alerta ativo.")
         self.alert_popover_subtitle.set_wrap(True)
         self.alert_popover_subtitle.set_xalign(0)
@@ -710,28 +754,44 @@ class SysSenseWindow(Adw.ApplicationWindow):
         self.alert_popover_subtitle.set_width_chars(28)
         self.alert_popover_subtitle.set_max_width_chars(28)
         self.alert_popover_subtitle.get_style_context().add_class("alert-guide-subtitle")
-        popover_box.append(self.alert_popover_subtitle)
+        panel.append(self.alert_popover_subtitle)
         self.alert_popover_list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        popover_box.append(self.alert_popover_list)
-        popover.set_child(popover_box)
-        button.set_popover(popover)
+        panel.append(self.alert_popover_list)
+        self.alert_panel_revealer.set_child(panel)
 
-        return button
+        return self.alert_panel_revealer
+
+    def _toggle_alert_panel(self, _button: Gtk.Button):
+        """Alterna o painel interno de riscos."""
+        if hasattr(self, "alert_panel_revealer"):
+            if hasattr(self, "preferences_panel_revealer"):
+                self.preferences_panel_revealer.set_reveal_child(False)
+            self.alert_panel_revealer.set_reveal_child(
+                not self.alert_panel_revealer.get_reveal_child()
+            )
 
     def _create_preferences_button(self) -> Gtk.Widget:
-        """Cria popover de preferências mínimas."""
+        """Cria botão de preferências mínimas."""
         button = Gtk.Button.new_from_icon_name("emblem-system-symbolic")
         button.set_has_frame(False)
         button.get_style_context().add_class("prefs-button")
+        button.connect("clicked", self._toggle_preferences_panel)
         self.preferences_button = button
+        return button
 
-        popover = Gtk.Popover()
-        popover.set_position(Gtk.PositionType.RIGHT)
-        popover.set_autohide(True)
-        if hasattr(popover, "set_cascade_popdown"):
-            popover.set_cascade_popdown(True)
+    def _create_preferences_overlay_panel(self) -> Gtk.Widget:
+        """Cria painel interno de preferências sem popup externo."""
+        self.preferences_panel_revealer = Gtk.Revealer()
+        self.preferences_panel_revealer.set_transition_type(Gtk.RevealerTransitionType.SLIDE_UP)
+        self.preferences_panel_revealer.set_transition_duration(150)
+        self.preferences_panel_revealer.set_halign(Gtk.Align.START)
+        self.preferences_panel_revealer.set_valign(Gtk.Align.END)
+        self.preferences_panel_revealer.set_margin_start(self._overlay_panel_start_margin())
+        self.preferences_panel_revealer.set_margin_bottom(18)
+
         popover_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         popover_box.get_style_context().add_class("prefs-popover")
+        popover_box.get_style_context().add_class("prefs-overlay-panel")
 
         title = Gtk.Label(label="Preferências")
         title.set_halign(Gtk.Align.START)
@@ -781,18 +841,17 @@ class SysSenseWindow(Adw.ApplicationWindow):
             self.card_switches[key] = switch
             popover_box.append(self._create_switch_row(label, switch))
 
-        popover.set_child(popover_box)
-        popover.set_parent(button)
-        button.connect("clicked", self._toggle_preferences_popover)
-        self.preferences_popover = popover
-        return button
+        self.preferences_panel_revealer.set_child(popover_box)
+        return self.preferences_panel_revealer
 
-    def _toggle_preferences_popover(self, _button: Gtk.Button):
-        """Abre ou fecha o popover de preferências."""
-        if self.preferences_popover.get_visible():
-            self.preferences_popover.popdown()
-        else:
-            self.preferences_popover.popup()
+    def _toggle_preferences_panel(self, _button: Gtk.Button):
+        """Abre ou fecha o painel interno de preferências."""
+        if hasattr(self, "preferences_panel_revealer"):
+            if hasattr(self, "alert_panel_revealer"):
+                self.alert_panel_revealer.set_reveal_child(False)
+            self.preferences_panel_revealer.set_reveal_child(
+                not self.preferences_panel_revealer.get_reveal_child()
+            )
 
     def _create_switch_row(self, label_text: str, switch: Gtk.Switch) -> Gtk.Widget:
         """Cria linha de preferência com switch."""
@@ -822,12 +881,12 @@ class SysSenseWindow(Adw.ApplicationWindow):
         self._save_user_config()
         self._restart_refresh_timer()
         self._refresh_footer_mode()
-        GLib.idle_add(self._close_preferences_popover)
+        GLib.idle_add(self._close_preferences_panel)
 
-    def _close_preferences_popover(self) -> bool:
-        """Fecha o popover de preferências quando uma ação discreta termina."""
-        if hasattr(self, "preferences_popover"):
-            self.preferences_popover.popdown()
+    def _close_preferences_panel(self) -> bool:
+        """Fecha o painel de preferências quando uma ação discreta termina."""
+        if hasattr(self, "preferences_panel_revealer"):
+            self.preferences_panel_revealer.set_reveal_child(False)
         return False
 
     def _on_bool_preference_changed(self, switch: Gtk.Switch, _pspec, key: str):
@@ -900,10 +959,21 @@ class SysSenseWindow(Adw.ApplicationWindow):
             self.sidebar.get_style_context().add_class("sidebar-compact")
         else:
             self.sidebar.get_style_context().remove_class("sidebar-compact")
+        panel_margin = self._overlay_panel_start_margin(compact)
+        if hasattr(self, "alert_panel_revealer"):
+            self.alert_panel_revealer.set_margin_start(panel_margin)
+        if hasattr(self, "preferences_panel_revealer"):
+            self.preferences_panel_revealer.set_margin_start(panel_margin)
         for label in self.nav_labels:
             label.set_visible(not compact)
         self.nav_footer.set_visible(not compact)
         return True
+
+    def _overlay_panel_start_margin(self, compact: bool | None = None) -> int:
+        """Alinha painéis internos com a borda esquerda dos cards."""
+        if compact is None:
+            compact = getattr(self, "sidebar", None) is not None and self.get_width() < 760
+        return 74 if compact else 162
     
     def _create_tabs(self):
         """Cria todas as abas do aplicativo."""
@@ -1074,7 +1144,7 @@ class SysSenseWindow(Adw.ApplicationWindow):
             card.set_visible(visible)
 
     def _create_processes_tab(self) -> Gtk.Widget:
-        """Aba de Processos com notebook de 3 abas."""
+        """Aba de Processos com navegação animada entre visões."""
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         vbox.get_style_context().add_class("process-page")
 
@@ -1085,14 +1155,29 @@ class SysSenseWindow(Adw.ApplicationWindow):
         self.process_runtime_notice.get_style_context().add_class("runtime-notice")
         self.process_runtime_notice.set_visible(False)
         vbox.append(self.process_runtime_notice)
-        
-        notebook = Gtk.Notebook()
+
+        tab_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        tab_bar.get_style_context().add_class("process-tab-bar")
+        self.process_tab_buttons = []
+        for label, page_name in (
+            ("Por Memória", "memory"),
+            ("Por CPU", "cpu"),
+            ("Comparar", "compare"),
+        ):
+            button = self._create_process_tab_button(label, page_name)
+            self.process_tab_buttons.append(button)
+            tab_bar.append(button)
+        vbox.append(tab_bar)
+
+        self.process_stack = Gtk.Stack()
+        self.process_stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
+        self.process_stack.set_transition_duration(160)
         
         self.mem_list = self._create_process_list(['Processo', 'PID', 'CPU %', 'Memória %'], [3, 1, 1, 1])
-        notebook.append_page(self._create_table_scroller(self.mem_list), Gtk.Label(label="Por Memória"))
+        self.process_stack.add_named(self._create_table_scroller(self.mem_list), "memory")
         
         self.cpu_proc_list = self._create_process_list(['Processo', 'PID', 'CPU %', 'Memória %'], [3, 1, 1, 1])
-        notebook.append_page(self._create_table_scroller(self.cpu_proc_list), Gtk.Label(label="Por CPU"))
+        self.process_stack.add_named(self._create_table_scroller(self.cpu_proc_list), "cpu")
         
         compare_flow = Gtk.FlowBox()
         compare_flow.get_style_context().add_class("compare-flow")
@@ -1130,12 +1215,35 @@ class SysSenseWindow(Adw.ApplicationWindow):
         compare_flow.append(left_box)
         compare_flow.append(right_box)
         
-        notebook.append_page(compare_flow, Gtk.Label(label="Comparar"))
-        
-        notebook.set_hexpand(True)
-        notebook.set_vexpand(True)
-        vbox.append(notebook)
+        self.process_stack.add_named(compare_flow, "compare")
+        self.process_stack.set_visible_child_name("memory")
+        self._set_active_process_tab("memory")
+        self.process_stack.set_hexpand(True)
+        self.process_stack.set_vexpand(True)
+        vbox.append(self.process_stack)
         return vbox
+
+    def _create_process_tab_button(self, label: str, page_name: str) -> Gtk.Widget:
+        """Cria botão de navegação interna da aba Processos."""
+        button = Gtk.Button(label=label)
+        button.set_has_frame(False)
+        button.get_style_context().add_class("process-tab-button")
+        button.connect("clicked", self._on_process_tab_clicked, page_name)
+        return button
+
+    def _on_process_tab_clicked(self, _button: Gtk.Button, page_name: str):
+        """Alterna visão interna de processos com transição."""
+        self.process_stack.set_visible_child_name(page_name)
+        self._set_active_process_tab(page_name)
+
+    def _set_active_process_tab(self, page_name: str):
+        """Marca botão ativo da navegação interna de Processos."""
+        names = ("memory", "cpu", "compare")
+        for button, name in zip(getattr(self, "process_tab_buttons", []), names):
+            if name == page_name:
+                button.get_style_context().add_class("active")
+            else:
+                button.get_style_context().remove_class("active")
     
     def _create_disk_tab(self) -> Gtk.Widget:
         """Aba de Disco."""
@@ -1404,7 +1512,7 @@ class SysSenseWindow(Adw.ApplicationWindow):
         label: Gtk.Label,
         progress: Gtk.ProgressBar,
         extra_class: str | None = None,
-        alert_label: Gtk.Label | None = None
+        alert_label: Gtk.Widget | None = None
     ) -> Gtk.Widget:
         """Cria card de métrica."""
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -1431,14 +1539,18 @@ class SysSenseWindow(Adw.ApplicationWindow):
         
         return card
 
-    def _create_inline_alert_label(self) -> Gtk.Label:
+    def _create_inline_alert_label(self) -> Gtk.Widget:
         """Cria um texto curto de alerta para cards."""
+        revealer = Gtk.Revealer()
+        revealer.set_transition_type(Gtk.RevealerTransitionType.SLIDE_DOWN)
+        revealer.set_transition_duration(160)
         label = Gtk.Label()
         label.set_halign(Gtk.Align.START)
         label.set_xalign(0)
         label.get_style_context().add_class("inline-alert")
-        label.set_visible(False)
-        return label
+        revealer.set_child(label)
+        revealer.set_reveal_child(False)
+        return revealer
     
     def _create_info_card(self, title: str, label: Gtk.Label, extra_class: str | None = None) -> Gtk.Widget:
         """Cria card de informação."""
@@ -1865,31 +1977,38 @@ class SysSenseWindow(Adw.ApplicationWindow):
     def _set_card_alert(
         self,
         card: Gtk.Widget,
-        label: Gtk.Label,
+        label: Gtk.Widget,
         severity: str | None,
         text: str
     ):
         """Aplica ou remove borda e texto curto de alerta em um card."""
+        text_label = label.get_child() if isinstance(label, Gtk.Revealer) else label
         context = card.get_style_context()
         context.remove_class("alert-card-medium")
         context.remove_class("alert-card-high")
-        label.get_style_context().remove_class("alert-medium")
-        label.get_style_context().remove_class("alert-high")
+        text_label.get_style_context().remove_class("alert-medium")
+        text_label.get_style_context().remove_class("alert-high")
 
         if not severity:
-            label.set_visible(False)
-            label.set_text("")
+            if isinstance(label, Gtk.Revealer):
+                label.set_reveal_child(False)
+            else:
+                label.set_visible(False)
+            text_label.set_text("")
             return
 
         if severity == "alta":
             context.add_class("alert-card-high")
-            label.get_style_context().add_class("alert-high")
-            label.set_text(f"Crítico: {text}")
+            text_label.get_style_context().add_class("alert-high")
+            text_label.set_text(f"Crítico: {text}")
         else:
             context.add_class("alert-card-medium")
-            label.get_style_context().add_class("alert-medium")
-            label.set_text(f"Atenção: {text}")
-        label.set_visible(True)
+            text_label.get_style_context().add_class("alert-medium")
+            text_label.set_text(f"Atenção: {text}")
+        if isinstance(label, Gtk.Revealer):
+            label.set_reveal_child(True)
+        else:
+            label.set_visible(True)
 
     def _show_important_toasts(self, alertas: list[dict]):
         """Mostra toast apenas para alertas críticos novos."""
