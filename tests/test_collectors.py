@@ -1,4 +1,5 @@
 import unittest
+import subprocess
 from unittest.mock import patch
 
 from syssense import collectors
@@ -36,6 +37,52 @@ class CollectorsTest(unittest.TestCase):
         self.assertFalse(info["is_flatpak"])
         self.assertEqual(info["mode"], "native")
         self.assertEqual(info["process_scope"], "host")
+
+    def test_failed_services_handles_command_error(self):
+        result = subprocess.CompletedProcess(
+            args=["systemctl"],
+            returncode=1,
+            stdout="",
+            stderr="erro",
+        )
+        with patch("syssense.collectors._run_readonly_command", return_value=result):
+            services = collectors.get_failed_services()
+
+        self.assertEqual(services["count"], 0)
+        self.assertEqual(services["failed_services"], [])
+
+    def test_failed_services_parses_json(self):
+        result = subprocess.CompletedProcess(
+            args=["systemctl"],
+            returncode=0,
+            stdout='[{"unit":"bad.service","state":"failed","sub":"failed"}]',
+            stderr="",
+        )
+        with patch("syssense.collectors._run_readonly_command", return_value=result):
+            services = collectors.get_failed_services()
+
+        self.assertEqual(services["count"], 1)
+        self.assertEqual(services["failed_services"][0]["name"], "bad.service")
+
+    def test_recent_logs_limits_requested_lines(self):
+        result = subprocess.CompletedProcess(
+            args=["journalctl"],
+            returncode=0,
+            stdout="linha 1\nlinha 2\n",
+            stderr="",
+        )
+        with patch("syssense.collectors._run_readonly_command", return_value=result) as command:
+            logs = collectors.get_recent_logs(500)
+
+        self.assertEqual(logs["logs"], ["linha 1", "linha 2"])
+        self.assertIn("100", command.call_args.args[0])
+
+    def test_speedtest_returns_friendly_error_on_failure(self):
+        with patch.dict("sys.modules", {"speedtest": None}):
+            result = collectors.speedtest()
+
+        self.assertFalse(result["success"])
+        self.assertIn("speedtest-cli", result["error"])
 
 
 if __name__ == "__main__":

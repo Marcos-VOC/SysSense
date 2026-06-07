@@ -15,9 +15,7 @@ import html
 import time
 from typing import Dict, Any
 
-from . import collectors, diagnostics
-
-REFRESH_INTERVAL_MS = 2500
+from . import collectors, diagnostics, config
 
 
 # CSS customizável para design minimalista moderno
@@ -425,6 +423,32 @@ treeview.view:selected {
     color: @ss-danger;
 }
 
+.prefs-button {
+    border-radius: 12px;
+    padding: 8px;
+    color: @ss-muted;
+    background: rgba(232, 228, 216, 0.05);
+}
+
+.prefs-button:hover {
+    background: @ss-card-hover;
+    color: @ss-text;
+}
+
+.prefs-popover {
+    padding: 14px;
+    min-width: 260px;
+    background: @ss-surface;
+    color: @ss-text;
+    border: 1px solid rgba(232, 228, 216, 0.10);
+    border-radius: 16px;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+}
+
+.prefs-row {
+    padding: 6px 0;
+}
+
 popover.alert-guide-popover > contents {
     background: transparent;
     border: none;
@@ -499,9 +523,10 @@ class SysSenseWindow(Adw.ApplicationWindow):
         self.dados_cache = {}
         self.lock = threading.Lock()
         self.previous_network_sample = None
-        self.memory_alert_visible = False
         self.last_critical_alerts = set()
         self.toast_overlay = None
+        self.user_config = config.load_config()
+        self.refresh_timer_id = None
         
         Adw.StyleManager.get_default().set_color_scheme(Adw.ColorScheme.FORCE_DARK)
         
@@ -642,7 +667,10 @@ class SysSenseWindow(Adw.ApplicationWindow):
         spacer.set_vexpand(True)
         sidebar.append(spacer)
 
-        sidebar.append(self._create_alert_indicator())
+        status_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        status_row.append(self._create_alert_indicator())
+        status_row.append(self._create_preferences_button())
+        sidebar.append(status_row)
         
         footer = Gtk.Label(label="Auto refresh: 2.5s")
         footer.set_wrap(True)
@@ -689,6 +717,138 @@ class SysSenseWindow(Adw.ApplicationWindow):
         button.set_popover(popover)
 
         return button
+
+    def _create_preferences_button(self) -> Gtk.Widget:
+        """Cria popover de preferências mínimas."""
+        button = Gtk.Button.new_from_icon_name("emblem-system-symbolic")
+        button.set_has_frame(False)
+        button.get_style_context().add_class("prefs-button")
+        self.preferences_button = button
+
+        popover = Gtk.Popover()
+        popover.set_position(Gtk.PositionType.RIGHT)
+        popover.set_autohide(True)
+        if hasattr(popover, "set_cascade_popdown"):
+            popover.set_cascade_popdown(True)
+        popover_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        popover_box.get_style_context().add_class("prefs-popover")
+
+        title = Gtk.Label(label="Preferências")
+        title.set_halign(Gtk.Align.START)
+        title.get_style_context().add_class("alert-guide-title")
+        popover_box.append(title)
+
+        refresh_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        refresh_row.get_style_context().add_class("prefs-row")
+        refresh_label = Gtk.Label(label="Atualização")
+        refresh_label.set_halign(Gtk.Align.START)
+        refresh_label.set_hexpand(True)
+        refresh_row.append(refresh_label)
+        self.refresh_combo = Gtk.ComboBoxText()
+        for value in config.REFRESH_OPTIONS_SECONDS:
+            self.refresh_combo.append_text(self._format_refresh_option(value))
+        active_index = config.REFRESH_OPTIONS_SECONDS.index(self.user_config["refresh_interval"])
+        self.refresh_combo.set_active(active_index)
+        self.refresh_combo.connect("changed", self._on_refresh_preference_changed)
+        refresh_row.append(self.refresh_combo)
+        popover_box.append(refresh_row)
+
+        toast_switch = Gtk.Switch()
+        toast_switch.set_active(self.user_config["critical_toasts"])
+        toast_switch.connect("notify::active", self._on_bool_preference_changed, "critical_toasts")
+        popover_box.append(self._create_switch_row("Toasts críticos", toast_switch))
+
+        cards_title = Gtk.Label(label="Cards da dashboard")
+        cards_title.set_halign(Gtk.Align.START)
+        cards_title.get_style_context().add_class("alert-guide-subtitle")
+        popover_box.append(cards_title)
+
+        self.card_switches = {}
+        card_labels = {
+            "cpu": "CPU",
+            "memory": "Memória",
+            "storage": "Armazenamento",
+            "temperature": "Temperatura",
+            "network": "Rede",
+            "load": "Carga",
+            "uptime": "Tempo ligado",
+            "internet": "Internet",
+        }
+        for key, label in card_labels.items():
+            switch = Gtk.Switch()
+            switch.set_active(self.user_config["visible_cards"][key])
+            switch.connect("notify::active", self._on_card_visibility_changed, key)
+            self.card_switches[key] = switch
+            popover_box.append(self._create_switch_row(label, switch))
+
+        popover.set_child(popover_box)
+        popover.set_parent(button)
+        button.connect("clicked", self._toggle_preferences_popover)
+        self.preferences_popover = popover
+        return button
+
+    def _toggle_preferences_popover(self, _button: Gtk.Button):
+        """Abre ou fecha o popover de preferências."""
+        if self.preferences_popover.get_visible():
+            self.preferences_popover.popdown()
+        else:
+            self.preferences_popover.popup()
+
+    def _create_switch_row(self, label_text: str, switch: Gtk.Switch) -> Gtk.Widget:
+        """Cria linha de preferência com switch."""
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        row.get_style_context().add_class("prefs-row")
+        label = Gtk.Label(label=label_text)
+        label.set_halign(Gtk.Align.START)
+        label.set_hexpand(True)
+        row.append(label)
+        row.append(switch)
+        return row
+
+    def _format_refresh_option(self, seconds: float) -> str:
+        """Formata opção de intervalo."""
+        return f"{int(seconds)}s" if seconds.is_integer() else f"{seconds:.1f}s"
+
+    def _save_user_config(self):
+        """Persiste preferências do usuário."""
+        self.user_config = config.save_config(self.user_config)
+
+    def _on_refresh_preference_changed(self, combo: Gtk.ComboBoxText):
+        """Atualiza intervalo de refresh."""
+        active = combo.get_active()
+        if active < 0:
+            return
+        self.user_config["refresh_interval"] = config.REFRESH_OPTIONS_SECONDS[active]
+        self._save_user_config()
+        self._restart_refresh_timer()
+        self._refresh_footer_mode()
+        GLib.idle_add(self._close_preferences_popover)
+
+    def _close_preferences_popover(self) -> bool:
+        """Fecha o popover de preferências quando uma ação discreta termina."""
+        if hasattr(self, "preferences_popover"):
+            self.preferences_popover.popdown()
+        return False
+
+    def _on_bool_preference_changed(self, switch: Gtk.Switch, _pspec, key: str):
+        """Atualiza preferências booleanas."""
+        self.user_config[key] = switch.get_active()
+        self._save_user_config()
+        if key == "show_speedtest":
+            self._apply_card_visibility()
+
+    def _on_card_visibility_changed(self, switch: Gtk.Switch, _pspec, key: str):
+        """Atualiza visibilidade de cards."""
+        self.user_config["visible_cards"][key] = switch.get_active()
+        self._save_user_config()
+        self._apply_card_visibility()
+
+    def _restart_refresh_timer(self):
+        """Reinicia timer de atualização automática."""
+        if self.refresh_timer_id is not None:
+            GLib.source_remove(self.refresh_timer_id)
+        interval_ms = int(self.user_config["refresh_interval"] * 1000)
+        self.refresh_timer_id = GLib.timeout_add(interval_ms, self._on_auto_refresh)
 
     def _create_nav_button(self, title: str, icon_name: str, page: int) -> Gtk.Widget:
         """Cria um botão de navegação da sidebar."""
@@ -794,6 +954,8 @@ class SysSenseWindow(Adw.ApplicationWindow):
         flow.set_margin_end(2)
         self.overview_flow = flow
         self.overview_cards = []
+        self.overview_card_widgets = {}
+        self.overview_card_flow_children = {}
         
         # CPU
         self.cpu_label = Gtk.Label()
@@ -806,7 +968,7 @@ class SysSenseWindow(Adw.ApplicationWindow):
             "light-card",
             self.cpu_alert_label
         )
-        self._append_overview_card(self.cpu_card)
+        self._append_overview_card(self.cpu_card, "cpu")
         
         # Memória
         self.mem_label = Gtk.Label()
@@ -819,31 +981,35 @@ class SysSenseWindow(Adw.ApplicationWindow):
             None,
             self.mem_alert_label
         )
-        self._append_overview_card(self.mem_card)
+        self._append_overview_card(self.mem_card, "memory")
         
         # Disco
         self.disk_label = Gtk.Label()
         self.disk_progressbar = Gtk.ProgressBar()
         self.disk_alert_label = self._create_inline_alert_label()
         self.disk_overview_card = self._create_disk_overview_card()
-        self._append_overview_card(self.disk_overview_card)
+        self._append_overview_card(self.disk_overview_card, "storage")
         
         # Temperatura
         self.temp_label = Gtk.Label()
-        self._append_overview_card(self._create_info_card("Temperatura", self.temp_label))
+        self.temp_card = self._create_info_card("Temperatura", self.temp_label)
+        self._append_overview_card(self.temp_card, "temperature")
         
         # Rede
         self.net_label = Gtk.Label()
-        self._append_overview_card(self._create_info_card("Tráfego de Rede", self.net_label))
+        self.net_card = self._create_info_card("Tráfego de Rede", self.net_label)
+        self._append_overview_card(self.net_card, "network")
         
         # Load Average
         self.load_label = Gtk.Label()
-        self._append_overview_card(self._create_info_card("Carga do Sistema", self.load_label))
+        self.load_card = self._create_info_card("Carga do Sistema", self.load_label)
+        self.load_card.set_tooltip_text("Carga média do sistema. Compare esses valores com a quantidade de núcleos da CPU.")
+        self._append_overview_card(self.load_card, "load")
         
         # Uptime
         self.uptime_label = Gtk.Label()
         self.uptime_card = self._create_info_card("Tempo Ligado", self.uptime_label, "wide-card")
-        self._append_overview_card(self.uptime_card)
+        self._append_overview_card(self.uptime_card, "uptime")
         
         speed_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         speed_panel.get_style_context().add_class("card-custom")
@@ -868,17 +1034,20 @@ class SysSenseWindow(Adw.ApplicationWindow):
         speed_panel.append(speed_title)
         speed_panel.append(speed_button)
         speed_panel.append(self.speed_result_label)
-        self._append_overview_card(speed_panel)
+        self._append_overview_card(speed_panel, "internet")
         
         scrolled.set_child(flow)
         page.append(scrolled)
         self._apply_cards_overview_layout()
+        self._apply_card_visibility()
         return page
 
-    def _append_overview_card(self, card: Gtk.Widget):
+    def _append_overview_card(self, card: Gtk.Widget, key: str):
         """Adiciona card à visão geral e guarda referência para responsividade."""
         self.overview_flow.append(card)
         self.overview_cards.append(card)
+        self.overview_card_widgets[key] = card
+        self.overview_card_flow_children[key] = card.get_parent()
 
     def _apply_cards_overview_layout(self):
         """Mantém a visão geral sempre no modo cards compactos."""
@@ -888,6 +1057,24 @@ class SysSenseWindow(Adw.ApplicationWindow):
         for card in self.overview_cards:
             card.set_size_request(168, 88)
         self.disk_overview_card.set_size_request(192, 140)
+
+    def _apply_card_visibility(self):
+        """Aplica preferências de visibilidade dos cards."""
+        if not hasattr(self, "overview_card_widgets"):
+            return
+
+        visible_cards = self.user_config.get("visible_cards", {})
+        for key, card in self.overview_card_widgets.items():
+            visible = bool(visible_cards.get(key, True))
+            if key == "internet" and not self.user_config.get("show_speedtest", True):
+                visible = False
+            flow_child = self.overview_card_flow_children.get(key)
+            if flow_child is None:
+                flow_child = card.get_parent()
+                self.overview_card_flow_children[key] = flow_child
+            if flow_child is not None:
+                flow_child.set_visible(visible)
+            card.set_visible(visible)
 
     def _create_processes_tab(self) -> Gtk.Widget:
         """Aba de Processos com notebook de 3 abas."""
@@ -1311,6 +1498,7 @@ class SysSenseWindow(Adw.ApplicationWindow):
             label = Gtk.Label(label=str(value))
             label.set_xalign(0 if i == 0 else 0.5)
             label.set_ellipsize(Pango.EllipsizeMode.END)
+            label.set_tooltip_text(str(value))
             label.set_hexpand(True)
             label.set_size_request(base_width * weight, -1)
             box.append(label)
@@ -1375,12 +1563,12 @@ class SysSenseWindow(Adw.ApplicationWindow):
         
         self.main_stack.set_visible_child_name("content")
         
-        GLib.timeout_add(REFRESH_INTERVAL_MS, self._on_auto_refresh)
+        self._restart_refresh_timer()
         
         return False
     
     def _on_auto_refresh(self) -> bool:
-        """Atualização automática a cada 2.5s."""
+        """Atualização automática conforme preferências."""
         thread = threading.Thread(target=self._refresh_fast_data, daemon=True)
         thread.start()
         return True
@@ -1424,8 +1612,17 @@ class SysSenseWindow(Adw.ApplicationWindow):
                     "Use a instalação nativa para monitorar os processos reais do Fedora."
                 )
         if hasattr(self, 'nav_footer'):
-            mode = "Sandbox" if is_flatpak else "Nativo"
-            self.nav_footer.set_text(f"Auto refresh: 2.5s\nModo: {mode}")
+            self.current_runtime_is_flatpak = is_flatpak
+            self._refresh_footer_mode()
+
+    def _refresh_footer_mode(self):
+        """Atualiza rodapé da sidebar."""
+        if not hasattr(self, 'nav_footer'):
+            return
+        is_flatpak = getattr(self, "current_runtime_is_flatpak", False)
+        mode = "Sandbox" if is_flatpak else "Nativo"
+        interval = self._format_refresh_option(self.user_config["refresh_interval"])
+        self.nav_footer.set_text(f"Auto refresh: {interval}\nModo: {mode}")
     
     def _on_refresh_services(self, button: Gtk.Button):
         """Botão Atualizar em Serviços."""
@@ -1569,7 +1766,6 @@ class SysSenseWindow(Adw.ApplicationWindow):
             self.alert_indicator.set_icon_name("emblem-ok-symbolic")
             title = "Sistema OK"
 
-        tooltip = self._format_alert_tooltip(alertas)
         self.alert_indicator.set_tooltip_text(None)
         self._update_alert_guide(title, alertas)
 
@@ -1700,6 +1896,14 @@ class SysSenseWindow(Adw.ApplicationWindow):
 
     def _show_important_toasts(self, alertas: list[dict]):
         """Mostra toast apenas para alertas críticos novos."""
+        if not self.user_config.get("critical_toasts", True):
+            self.last_critical_alerts = {
+                alerta.get('campo')
+                for alerta in alertas
+                if alerta.get('severidade') == 'alta'
+            }
+            return
+
         critical_alerts = [
             alerta for alerta in alertas
             if alerta.get('severidade') == 'alta'
@@ -1728,24 +1932,6 @@ class SysSenseWindow(Adw.ApplicationWindow):
         if any(alerta.get('severidade') == 'media' for alerta in alertas):
             return "media"
         return None
-
-    def _format_alert_tooltip(self, alertas: list[dict]) -> str:
-        """Formata texto curto para tooltip e popover de alertas."""
-        if not alertas:
-            return "Nenhum alerta ativo."
-
-        lines = []
-        for alerta in alertas[:5]:
-            prefix = "Crítico" if alerta.get('severidade') == 'alta' else "Atenção"
-            lines.append(f"{prefix}: {alerta.get('mensagem', 'Alerta sem descrição')}")
-        if len(alertas) > 5:
-            lines.append(f"+ {len(alertas) - 5} alerta(s)")
-        return "\n".join(lines)
-
-    def _reset_memory_alert(self) -> bool:
-        """Permite novo alerta de memória após o toast atual sumir."""
-        self.memory_alert_visible = False
-        return False
 
     def _update_processes(self, data: Dict[str, Any]):
         """Atualiza Processos."""
@@ -1798,7 +1984,10 @@ class SysSenseWindow(Adw.ApplicationWindow):
             pct = part['percent']
             
             info_label = Gtk.Label()
-            info_label.set_text(f"Usado: {used_gb:.1f} GB / {total_gb:.1f} GB ({pct:.1f}%) | Livre: {free_gb:.1f} GB")
+            info_label.set_text(
+                f"Usado: {used_gb:.1f} GB / {total_gb:.1f} GB ({pct:.1f}%) | "
+                f"Livre: {free_gb:.1f} GB | {part.get('fstype', 'fs')}"
+            )
             info_label.set_halign(Gtk.Align.START)
             info_label.get_style_context().add_class("subtitle-text")
             card.append(info_label)
@@ -1826,6 +2015,10 @@ class SysSenseWindow(Adw.ApplicationWindow):
         logs_error = logs.get('error')
 
         if service_error:
+            state_label = Gtk.Label()
+            state_label.set_markup("<b>Indisponível</b>")
+            state_label.set_halign(Gtk.Align.START)
+            self.services_box.append(state_label)
             error_label = Gtk.Label(label=f"Serviços indisponíveis: {service_error}")
             error_label.set_wrap(True)
             error_label.set_halign(Gtk.Align.START)
@@ -1833,13 +2026,17 @@ class SysSenseWindow(Adw.ApplicationWindow):
             self.services_box.append(error_label)
         
         if failed_count == 0 and not service_error:
-            label = Gtk.Label(label="✓ Todos os serviços funcionando corretamente.")
+            state_label = Gtk.Label()
+            state_label.set_markup("<b>Tudo certo</b>")
+            state_label.set_halign(Gtk.Align.START)
+            self.services_box.append(state_label)
+            label = Gtk.Label(label="Nenhum serviço systemd com falha foi encontrado.")
             label.get_style_context().add_class("subtitle-text")
             label.set_halign(Gtk.Align.START)
             self.services_box.append(label)
         else:
             title = Gtk.Label()
-            title.set_markup(f"<b>Serviços com Falha ({failed_count})</b>")
+            title.set_markup(f"<b>Falhas detectadas</b> • {failed_count} serviço(s)")
             title.set_halign(Gtk.Align.START)
             if failed_count:
                 self.services_box.append(title)

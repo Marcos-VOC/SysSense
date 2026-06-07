@@ -10,6 +10,7 @@ Este modo é recomendado quando o objetivo é monitorar o Fedora real, como acon
 - Não instala o SysSense como root.
 - Não cria serviço em background.
 - Não altera configurações do sistema.
+- Salva apenas preferências do app em `~/.config/syssense/config.json`, quando o usuário altera opções.
 
 ## Requisitos Fedora
 
@@ -48,6 +49,7 @@ Mesmo em modo nativo, o SysSense continua sendo somente leitura:
 - não encerra processos;
 - não altera serviços;
 - não grava métricas em disco;
+- não grava histórico de logs ou diagnósticos;
 - não usa `shell=True`;
 - executa apenas consultas de leitura com timeout.
 

@@ -65,6 +65,22 @@ class DiagnosticsTest(unittest.TestCase):
         self.assertEqual(alertas[0]["severidade"], "alta")
         self.assertEqual(alertas[-1]["severidade"], "media")
 
+    def test_alerts_keep_only_highest_severity_per_field(self):
+        dados = {
+            "cpu": {"percent": 10},
+            "memoria": {"percent": 90, "swap_percent": 0},
+            "disco": {"partitions": [{"percent": 95}]},
+            "servicos": {"count": 0},
+            "processos": {"by_memory": [], "by_cpu": []},
+        }
+
+        alertas = diagnostics.diagnosticar_por_regras(dados)
+        campos = [alerta["campo"] for alerta in alertas]
+
+        self.assertEqual(campos.count("mem_percent"), 1)
+        self.assertEqual(campos.count("disco_percent"), 1)
+        self.assertTrue(all(alerta["severidade"] == "alta" for alerta in alertas))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -15,6 +15,13 @@ if [[ -z "${PYTHON_BIN:-}" ]]; then
     exit 1
 fi
 
+if [[ ! -f /etc/fedora-release ]]; then
+    cat >&2 <<'EOF'
+Aviso: este instalador é testado oficialmente no Fedora/GNOME.
+Continuando em modo melhor esforço.
+EOF
+fi
+
 CHECK_ENV=(env -u PYTHONPATH -u PYTHONHOME PYTHONNOUSERSITE=1)
 PIP_ENV=(env -u PYTHONPATH -u PYTHONHOME)
 
@@ -35,6 +42,12 @@ EOF
     exit 1
 fi
 
+if ! "${PIP_ENV[@]}" "$PYTHON_BIN" -m pip --version >/dev/null 2>&1; then
+    echo "pip para Python 3 não está disponível." >&2
+    echo "No Fedora, instale com: sudo dnf install python3-pip" >&2
+    exit 1
+fi
+
 "${PIP_ENV[@]}" "$PYTHON_BIN" -m pip install --user "$PROJECT_DIR"
 
 APP_ID="br.com.syssense"
@@ -50,6 +63,12 @@ if [[ ! -x "$LOCAL_BIN" ]]; then
     echo "O comando ${LOCAL_BIN} não foi criado pelo pip." >&2
     exit 1
 fi
+
+PATH_WARNING=""
+case ":${PATH}:" in
+    *":${HOME}/.local/bin:"*) ;;
+    *) PATH_WARNING="Aviso: ${HOME}/.local/bin não está no PATH atual. Se o comando syssense não abrir, reinicie a sessão ou adicione esse diretório ao PATH." ;;
+esac
 
 mkdir -p "$APPLICATIONS_DIR" "$ICONS_DIR"
 rm -f "$LEGACY_ICON_FILE"
@@ -89,3 +108,7 @@ Atalho:
 
 Este modo roda como seu usuário normal e lê as métricas reais do Fedora.
 EOF
+
+if [[ -n "$PATH_WARNING" ]]; then
+    printf '\n%s\n' "$PATH_WARNING"
+fi

@@ -14,7 +14,7 @@ REGRAS = [
         "limite": 85,
         "operador": "gt",
         "severidade": "alta",
-        "mensagem": "Memória em uso crítico ({valor}%). Principais consumidores: {processos_memoria}."
+        "mensagem": "Memória em uso crítico ({valor}%). Verifique antes de abrir novos aplicativos. Principais consumidores: {processos_memoria}."
     },
     {
         "campo": "mem_percent",
@@ -28,7 +28,7 @@ REGRAS = [
         "limite": 90,
         "operador": "gt",
         "severidade": "alta",
-        "mensagem": "Disco praticamente cheio ({valor}%). Libere espaço urgentemente."
+        "mensagem": "Disco praticamente cheio ({valor}%). Revise downloads, cache e arquivos grandes com urgência."
     },
     {
         "campo": "disco_percent",
@@ -42,21 +42,21 @@ REGRAS = [
         "limite": 0,
         "operador": "gt",
         "severidade": "media",
-        "mensagem": "Há {valor} serviço(s) systemd com falha. Verifique a aba Serviços."
+        "mensagem": "Há {valor} serviço(s) systemd com falha. Abra a aba Serviços para revisar nomes e logs recentes."
     },
     {
         "campo": "cpu_percent",
         "limite": 80,
         "operador": "gt",
         "severidade": "media",
-        "mensagem": "CPU em uso intenso ({valor}%). Principais consumidores: {processos_cpu}."
+        "mensagem": "CPU em uso intenso ({valor}%). Verifique tarefas pesadas em execução. Principais consumidores: {processos_cpu}."
     },
     {
         "campo": "swap_percent",
         "limite": 50,
         "operador": "gt",
         "severidade": "media",
-        "mensagem": "Swap memory em uso ({valor}%). Memória RAM pode estar insuficiente."
+        "mensagem": "Swap em uso ({valor}%). Memória RAM pode estar insuficiente para a carga atual."
     }
 ]
 
@@ -187,11 +187,21 @@ def diagnosticar_por_regras(dados: Dict[str, Any]) -> List[Dict[str, Any]]:
                 'valor': valor,
             })
     
-    # Ordena por severidade (alta primeiro)
     severidade_order = {'alta': 0, 'media': 1, 'baixa': 2}
-    alertas.sort(key=lambda x: severidade_order.get(x['severidade'], 3))
-    
-    return alertas
+    melhores_por_campo = {}
+    for alerta in alertas:
+        campo = alerta.get('campo')
+        atual = melhores_por_campo.get(campo)
+        if atual is None:
+            melhores_por_campo[campo] = alerta
+            continue
+        if severidade_order.get(alerta['severidade'], 3) < severidade_order.get(atual['severidade'], 3):
+            melhores_por_campo[campo] = alerta
+
+    alertas_deduplicados = list(melhores_por_campo.values())
+    alertas_deduplicados.sort(key=lambda x: severidade_order.get(x['severidade'], 3))
+
+    return alertas_deduplicados
 
 
 def diagnosticar_com_ia(dados: Dict[str, Any]) -> str:

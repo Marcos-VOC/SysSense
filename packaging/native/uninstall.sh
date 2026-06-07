@@ -16,6 +16,8 @@ ICONS_DIR="${HOME}/.local/share/icons/hicolor/scalable/apps"
 
 if [[ -n "${PYTHON_BIN:-}" ]]; then
     "${CLEAN_ENV[@]}" "$PYTHON_BIN" -m pip uninstall -y syssense || true
+else
+    echo "Python 3 não encontrado; removendo apenas atalhos e ícones locais."
 fi
 
 rm -f "${APPLICATIONS_DIR}/${APP_ID}.desktop"

@@ -2,6 +2,62 @@
 
 Todas as mudanças relevantes do SysSense serão documentadas aqui.
 
+## [Não lançado]
+
+### Corrigido
+
+- Popover de preferências pode ser fechado pela engrenagem ou por clique fora da área.
+- Popover de preferências fecha automaticamente após alterar o intervalo de atualização.
+- Cards ocultos na dashboard deixam de reservar espaço visual, permitindo que os cards seguintes preencham a grade.
+
+## [0.3.4] - 2026-06-07
+
+### Adicionado
+
+- Preferências locais em `~/.config/syssense/config.json`.
+- Popover discreto de preferências na sidebar.
+- Seleção de cards visíveis na dashboard.
+- Opções fixas de intervalo de atualização: `1s`, `2.5s`, `5s` e `10s`.
+- Opções para exibir/ocultar toasts críticos e cards da dashboard.
+
+### Alterado
+
+- Rodapé da sidebar passa a refletir o intervalo de atualização configurado.
+- Cards da dashboard respeitam preferências persistidas.
+
+## [0.3.3] - 2026-06-07
+
+### Adicionado
+
+- Configuração persistente validada com defaults seguros.
+- Testes para configuração ausente, inválida e salva em JSON.
+
+## [0.3.2] - 2026-06-07
+
+### Alterado
+
+- Alertas automáticos agora removem duplicidades por categoria, mantendo a maior severidade ativa.
+- Mensagens dos alertas ficaram mais acionáveis.
+- Aba Serviços ganhou estados mais claros para tudo certo, falhas detectadas e indisponibilidade.
+- Aba Disco passou a exibir o sistema de arquivos junto das informações de uso.
+- Processos ganharam tooltip com o valor completo quando o texto é truncado.
+
+## [0.3.1] - 2026-06-07
+
+### Adicionado
+
+- Testes adicionais para coletores, serviços, logs, speedtest e configuração.
+- Testes de deduplicação e ordenação de alertas.
+- Documento `docs/testing.md` com comandos de validação.
+
+## [0.3.0] - 2026-06-07
+
+### Alterado
+
+- Instalador nativo local ganhou checagens mais claras para Fedora, GTK/libadwaita, `pip` e `PATH`.
+- Desinstalador nativo ganhou mensagens mais seguras quando Python não está disponível.
+- Documentação registra que RPM/COPR seguem como possibilidade futura, sem prioridade imediata.
+
 ## [0.2.1] - 2026-06-06
 
 ### Adicionado

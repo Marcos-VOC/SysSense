@@ -26,6 +26,11 @@
   </categories>
   <url type="homepage">https://github.com/Marcos-VOC/SysSense</url>
   <releases>
+    <release version="0.3.4" date="2026-06-07">
+      <description>
+        <p>Preferências locais, seleção de cards visíveis, intervalos de atualização configuráveis e refinamentos de monitoramento.</p>
+      </description>
+    </release>
     <release version="0.2.1" date="2026-06-06">
       <description>
         <p>Estabilização com painel de status, testes leves, documentação revisada e instalação nativa consolidada como modo recomendado.</p>

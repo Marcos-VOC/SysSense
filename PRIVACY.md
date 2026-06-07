@@ -31,4 +31,4 @@ Logs do sistema podem conter nomes de usuário, caminhos locais, nomes de dispos
 
 ## Arquivos
 
-O SysSense não grava histórico de métricas, logs ou resultados de diagnóstico em disco na versão atual.
+O SysSense não grava histórico de métricas, logs ou resultados de diagnóstico em disco na versão atual. Ele salva apenas preferências locais em `~/.config/syssense/config.json`, como intervalo de atualização e cards visíveis.

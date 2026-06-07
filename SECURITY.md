@@ -7,7 +7,7 @@ SysSense é um monitor local de sistema. A versão atual foi desenhada para ser 
 - não altera configurações do sistema;
 - não mata processos;
 - não inicia, para ou reinicia serviços;
-- não escreve arquivos de configuração do usuário;
+- escreve apenas preferências locais em `~/.config/syssense/config.json`, quando o usuário altera opções;
 - não executa comandos via shell;
 - não coleta credenciais.
 

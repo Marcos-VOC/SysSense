@@ -8,7 +8,7 @@ O foco atual é oferecer uma dashboard simples, bonita e local para acompanhar C
 
 ## Status
 
-Versão atual: `0.2.1`
+Versão atual: `0.3.4`
 
 Modos oficiais:
 
@@ -25,8 +25,9 @@ Modos oficiais:
 - Alertas automáticos baseados em regras, com indicador na sidebar e mensagens curtas nos cards afetados.
 - Teste de velocidade sob demanda.
 - Alertas visuais discretos para uso crítico de memória e armazenamento elevado.
+- Preferências locais para intervalo de atualização, toasts críticos e cards visíveis.
 - Interface escura com GTK 4 + libadwaita.
-- Atualização automática das métricas principais a cada 2.5 segundos.
+- Atualização automática configurável das métricas principais.
 
 ## Alertas automáticos
 
@@ -36,11 +37,27 @@ O SysSense avalia regras locais a cada atualização e mostra avisos sem exigir 
 |------|---------|---------|
 | Memória RAM | acima de 70% | acima de 85% |
 | Armazenamento | acima de 70% na maior partição | acima de 90% na maior partição |
-| CPU | acima de 80% | não há nível crítico na v0.2 |
-| Swap | acima de 50% | não há nível crítico na v0.2 |
-| Serviços | qualquer serviço systemd com falha | não há nível crítico na v0.2 |
+| CPU | acima de 80% | não há nível crítico na v0.3 |
+| Swap | acima de 50% | não há nível crítico na v0.3 |
+| Serviços | qualquer serviço systemd com falha | não há nível crítico na v0.3 |
 
 Quando um alerta está ativo, o indicador da sidebar muda de estado, o painel de status lista os itens detectados e os cards afetados recebem uma borda e uma mensagem curta.
+
+## Preferências
+
+As preferências ficam em:
+
+```text
+~/.config/syssense/config.json
+```
+
+O arquivo é criado automaticamente quando uma preferência é alterada. Se ele estiver ausente ou inválido, o SysSense volta aos padrões seguros.
+
+Preferências disponíveis na `v0.3.4`:
+
+- intervalo de atualização: `1s`, `2.5s`, `5s` ou `10s`;
+- exibir ou ocultar toasts de alertas críticos;
+- escolher quais cards aparecem na dashboard, incluindo o teste de internet.
 
 ## Instalação
 
@@ -171,7 +188,10 @@ SysSense/
 │   ├── flatpak-spike.md
 │   ├── native-install.md
 │   ├── release-v0.1.md
-│   └── release-v0.2.md
+│   ├── release-v0.2.md
+│   ├── roadmap-v0.3.md
+│   ├── restructure-roadmap.md
+│   └── testing.md
 ├── packaging/
 │   ├── flatpak/            # manifest Flatpak
 │   └── native/             # instalação local sem root
@@ -208,7 +228,8 @@ A única ação de rede intencional é o teste de velocidade, iniciado manualmen
 - `v0.1.0`: primeira versão pública com instalação nativa local e manifest Flatpak.
 - `v0.2.0`: alertas visuais, rede em tempo real, diagnóstico automático e UX melhor nas abas técnicas.
 - `v0.2.1`: painel de status, testes leves, documentação revisada e estabilização para publicação no GitHub.
-- `v0.3.0`: empacotamento nativo mais robusto para distribuição no Fedora.
+- `v0.3.x`: instalação nativa refinada, testes ampliados, monitoramento mais claro, preferências locais e personalização dos cards.
+- Pós-`v0.3`: reestruturação interna incremental documentada em `docs/restructure-roadmap.md`.
 
 ## Licença
 
