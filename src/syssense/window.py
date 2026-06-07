@@ -607,10 +607,10 @@ class SysSenseWindow(Adw.ApplicationWindow):
         shell.set_hexpand(True)
         shell.set_vexpand(True)
         
-        # Notebook usado como stack de páginas; a navegação visual fica na sidebar.
-        self.notebook = Gtk.Notebook()
-        self.notebook.set_show_tabs(False)
-        self.notebook.set_show_border(False)
+        # Stack usado como navegação principal; a sidebar controla as páginas.
+        self.page_stack = Gtk.Stack()
+        self.page_stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
+        self.page_stack.set_transition_duration(180)
         
         # Cria abas
         self._create_tabs()
@@ -633,9 +633,9 @@ class SysSenseWindow(Adw.ApplicationWindow):
         title_box.append(title)
         content.append(title_box)
         
-        self.notebook.set_hexpand(True)
-        self.notebook.set_vexpand(True)
-        content.append(self.notebook)
+        self.page_stack.set_hexpand(True)
+        self.page_stack.set_vexpand(True)
+        content.append(self.page_stack)
         shell.append(content)
         
         return shell
@@ -881,7 +881,7 @@ class SysSenseWindow(Adw.ApplicationWindow):
 
     def _on_nav_clicked(self, button: Gtk.Button, page: int):
         """Alterna páginas pelo menu lateral."""
-        self.notebook.set_current_page(page)
+        self.page_stack.set_visible_child_name(self.page_names[page])
         self._set_active_nav(page)
 
     def _set_active_nav(self, page: int):
@@ -907,26 +907,23 @@ class SysSenseWindow(Adw.ApplicationWindow):
     
     def _create_tabs(self):
         """Cria todas as abas do aplicativo."""
+        self.page_names = ["overview", "processes", "disk", "services"]
+
         # Aba 1: Visão Geral
         overview_box = self._create_overview_tab()
-        overview_label = Gtk.Label(label="Visão Geral")
-        self.notebook.append_page(overview_box, overview_label)
+        self.page_stack.add_named(overview_box, "overview")
         
         # Aba 2: Processos
         processes_box = self._create_processes_tab()
-        processes_label = Gtk.Label(label="Processos")
-        self.notebook.append_page(processes_box, processes_label)
+        self.page_stack.add_named(processes_box, "processes")
         
         # Aba 3: Disco
         disk_box = self._create_disk_tab()
-        disk_label = Gtk.Label(label="Disco")
-        self.disk_tab_label = disk_label
-        self.notebook.append_page(disk_box, disk_label)
+        self.page_stack.add_named(disk_box, "disk")
         
         # Aba 4: Serviços
         services_box = self._create_services_tab()
-        services_label = Gtk.Label(label="Serviços")
-        self.notebook.append_page(services_box, services_label)
+        self.page_stack.add_named(services_box, "services")
         
     def _create_overview_tab(self) -> Gtk.Widget:
         """Aba de Visão Geral."""
