@@ -8,7 +8,7 @@ O foco atual é oferecer uma dashboard simples, bonita e local para acompanhar C
 
 ## Status
 
-Versão atual: `0.3.4`
+Versão atual: `0.4.0`
 
 Modos oficiais:
 
@@ -26,6 +26,7 @@ Modos oficiais:
 - Teste de velocidade sob demanda.
 - Alertas visuais discretos para uso crítico de memória e armazenamento elevado.
 - Painel interno de preferências para intervalo de atualização, toasts críticos e cards visíveis.
+- Menu discreto na Visão Geral para reorganizar a ordem dos cards.
 - Interface escura com GTK 4 + libadwaita.
 - Atualização automática configurável das métricas principais.
 - Transições leves entre seções, guias de processos e mensagens de alerta.
@@ -54,11 +55,13 @@ As preferências ficam em:
 
 O arquivo é criado automaticamente quando uma preferência é alterada. Se ele estiver ausente ou inválido, o SysSense volta aos padrões seguros.
 
-Preferências disponíveis na `v0.3.4`:
+Preferências disponíveis:
 
 - intervalo de atualização: `1s`, `2.5s`, `5s` ou `10s`;
 - exibir ou ocultar toasts de alertas críticos;
 - escolher quais cards aparecem na dashboard, incluindo o teste de internet.
+
+A ordem dos cards é ajustada pelo menu de organização no canto superior direito da Visão Geral e também fica salva em `config.json`.
 
 Os painéis de status e preferências abrem dentro da própria janela do app, sem popups externos do sistema.
 
@@ -190,9 +193,11 @@ SysSense/
 ├── docs/
 │   ├── flatpak-spike.md
 │   ├── native-install.md
+│   ├── release-checklist.md
 │   ├── release-v0.1.md
 │   ├── release-v0.2.md
 │   ├── release-v0.3.md
+│   ├── release-v0.4.md
 │   ├── roadmap-v0.3.md
 │   ├── roadmap-v0.4.md
 │   ├── restructure-roadmap.md
@@ -209,7 +214,14 @@ SysSense/
 │       ├── main.py         # Adw.Application
 │       ├── resources/
 │       │   └── styles.css  # estilos GTK do aplicativo
-│       └── window.py       # interface GTK/libadwaita
+│       ├── ui/
+│       │   ├── disk.py         # tela de disco
+│       │   ├── overview.py     # dashboard e cards principais
+│       │   ├── preferences.py  # painel interno de preferências
+│       │   ├── processes.py    # tela de processos
+│       │   ├── services.py     # tela de serviços
+│       │   └── sidebar.py      # barra lateral
+│       └── window.py       # janela principal e coordenação da UI
 ├── CHANGELOG.md
 ├── pyproject.toml
 ├── requirements.txt

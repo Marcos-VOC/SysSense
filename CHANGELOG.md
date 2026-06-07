@@ -2,6 +2,27 @@
 
 Todas as mudanças relevantes do SysSense serão documentadas aqui.
 
+## [0.4.0] - 2026-06-07
+
+### Alterado
+
+- Sidebar extraída de `window.py` para `src/syssense/ui/sidebar.py`.
+- Painel de preferências extraído de `window.py` para `src/syssense/ui/preferences.py`.
+- Dashboard principal e cards da visão geral extraídos para `src/syssense/ui/overview.py`.
+- Aba de Processos extraída para `src/syssense/ui/processes.py`.
+- Aba de Disco extraída para `src/syssense/ui/disk.py`.
+- Aba de Serviços extraída para `src/syssense/ui/services.py`.
+- Seletor de partições do card de armazenamento trocado para `Gtk.MenuButton` com opções internas, evitando inconsistências de hover do `Gtk.ComboBoxText`.
+- Cards da dashboard agora podem ser reorganizados manualmente por um menu discreto na Visão Geral, com ordem persistida em `config.json`.
+- Documentação da série `v0.4` adicionada em `docs/release-v0.4.md`.
+
+### Corrigido
+
+- Painéis internos fechados deixam de interceptar cliques em widgets da dashboard.
+- Painéis internos de riscos e preferências agora fecham com `Esc` ou clique fora.
+- Painel de preferências libera o foco do seletor de refresh após a escolha para evitar cliques presos até clicar fora.
+- Teste manual de internet passa a usar timeout explícito, modo seguro do `speedtest-cli` e mensagens de erro mais amigáveis.
+
 ## [0.3.4] - 2026-06-07
 
 ### Adicionado

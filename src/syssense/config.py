@@ -13,6 +13,16 @@ APP_CONFIG_DIR = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")
 CONFIG_FILE = APP_CONFIG_DIR / "config.json"
 
 REFRESH_OPTIONS_SECONDS = (1.0, 2.5, 5.0, 10.0)
+DEFAULT_CARD_ORDER = (
+    "cpu",
+    "memory",
+    "storage",
+    "temperature",
+    "network",
+    "load",
+    "uptime",
+    "internet",
+)
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "refresh_interval": 2.5,
@@ -28,6 +38,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "uptime": True,
         "internet": True,
     },
+    "card_order": list(DEFAULT_CARD_ORDER),
 }
 
 
@@ -56,6 +67,16 @@ def normalize_config(raw_config: dict[str, Any] | None) -> dict[str, Any]:
         for key in config["visible_cards"]:
             if key in raw_cards:
                 config["visible_cards"][key] = bool(raw_cards[key])
+
+    raw_order = raw_config.get("card_order", [])
+    if isinstance(raw_order, list):
+        valid_keys = set(DEFAULT_CARD_ORDER)
+        ordered = []
+        for key in raw_order:
+            if isinstance(key, str) and key in valid_keys and key not in ordered:
+                ordered.append(key)
+        missing = [key for key in DEFAULT_CARD_ORDER if key not in ordered]
+        config["card_order"] = ordered + missing
 
     return config
 

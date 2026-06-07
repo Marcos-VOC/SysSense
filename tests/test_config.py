@@ -31,6 +31,15 @@ class ConfigTest(unittest.TestCase):
 
         self.assertEqual(normalized["refresh_interval"], 2.5)
 
+    def test_normalize_config_repairs_card_order(self):
+        normalized = config.normalize_config({"card_order": ["internet", "cpu", "unknown", "cpu"]})
+
+        self.assertEqual(normalized["card_order"][0], "internet")
+        self.assertEqual(normalized["card_order"][1], "cpu")
+        self.assertNotIn("unknown", normalized["card_order"])
+        self.assertEqual(len(normalized["card_order"]), len(config.DEFAULT_CARD_ORDER))
+        self.assertEqual(set(normalized["card_order"]), set(config.DEFAULT_CARD_ORDER))
+
     def test_save_config_writes_normalized_json(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "config.json"

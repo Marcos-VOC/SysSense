@@ -22,7 +22,7 @@ Continuando em modo melhor esforço.
 EOF
 fi
 
-CHECK_ENV=(env -u PYTHONPATH -u PYTHONHOME PYTHONNOUSERSITE=1)
+CHECK_ENV=(env -u PYTHONPATH -u PYTHONHOME)
 PIP_ENV=(env -u PYTHONPATH -u PYTHONHOME)
 
 if ! "${CHECK_ENV[@]}" "$PYTHON_BIN" - <<'PY'

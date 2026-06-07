@@ -105,6 +105,10 @@ button.nav-item.active .nav-icon,
     padding: 2px 0 0 0;
 }
 
+.panel-dismiss-layer {
+    background: transparent;
+}
+
 .page-title {
     color: @ss-text;
     font-size: 50px;
@@ -129,6 +133,59 @@ button.nav-item.active .nav-icon,
 .overview-flow flowboxchild:hover {
     border-radius: 16px;
     background: transparent;
+}
+
+.overview-toolbar {
+    margin: 0 8px 0 2px;
+}
+
+.overview-order-button {
+    border-radius: 12px;
+    padding: 0;
+    color: @ss-muted;
+    background: transparent;
+}
+
+.overview-order-button > button {
+    border-radius: 12px;
+    padding: 8px;
+    color: @ss-muted;
+    background: rgba(232, 228, 216, 0.05);
+}
+
+.overview-order-button:hover,
+.overview-order-button:checked {
+    background: transparent;
+}
+
+.overview-order-button > button:hover,
+.overview-order-button > button:checked {
+    background: rgba(232, 228, 216, 0.11);
+    color: @ss-text;
+    border-radius: 12px;
+}
+
+.overview-order-popover {
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.overview-order-popover > contents {
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.overview-order-panel {
+    padding: 12px;
+    min-width: 230px;
+    background: @ss-surface;
+    border: 1px solid rgba(232, 228, 216, 0.16);
+    border-radius: 16px;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
 }
 
 
@@ -200,6 +257,16 @@ button.suggested-action {
     font-weight: 700;
 }
 
+button.secondary-action {
+    background: rgba(232, 228, 216, 0.08);
+    color: @ss-text;
+    font-weight: 700;
+}
+
+button.secondary-action:hover {
+    background: rgba(232, 228, 216, 0.13);
+}
+
 
 .disk-chart-card {
     min-width: 240px;
@@ -212,6 +279,77 @@ button.suggested-action {
 
 .disk-partition-combo {
     min-width: 78px;
+    border-radius: 12px;
+    background: @ss-surface-3;
+    color: @ss-text;
+}
+
+.disk-partition-combo > button,
+.disk-partition-combo > button:checked,
+.disk-partition-combo > button:active,
+.disk-partition-combo > button:focus {
+    background: @ss-surface-3;
+    color: @ss-text;
+    border-radius: 12px;
+    border: none;
+    box-shadow: none;
+}
+
+.disk-partition-combo:hover,
+.disk-partition-combo > button:hover {
+    background: rgba(232, 228, 216, 0.12);
+    color: @ss-text;
+    border-radius: 12px;
+    border: none;
+    box-shadow: none;
+}
+
+.disk-partition-popover {
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.disk-partition-popover > contents {
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.disk-partition-options {
+    padding: 8px;
+    background: @ss-surface;
+    border: 1px solid rgba(232, 228, 216, 0.16);
+    border-radius: 14px;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+}
+
+.disk-partition-option {
+    padding: 8px 10px;
+    margin: 1px 0;
+    border: none;
+    border-radius: 10px;
+    box-shadow: none;
+    color: @ss-text;
+    background: transparent;
+    background-clip: padding-box;
+}
+
+.disk-partition-option:hover,
+.disk-partition-option:focus {
+    background: rgba(232, 228, 216, 0.09);
+    color: @ss-text;
+    border-radius: 10px;
+    box-shadow: none;
+}
+
+.disk-partition-option.active {
+    background: rgba(232, 228, 216, 0.16);
+    color: @ss-text;
+    border-radius: 10px;
+    box-shadow: none;
 }
 
 .disk-info-box {
@@ -415,6 +553,11 @@ treeview.view:selected {
     background: rgba(232, 228, 216, 0.05);
 }
 
+.alert-indicator:hover {
+    background: @ss-card-hover;
+    color: @ss-text;
+}
+
 .alert-indicator-ok {
     color: @ss-success;
 }
@@ -451,6 +594,30 @@ treeview.view:selected {
 
 .prefs-row {
     padding: 6px 0;
+}
+
+.card-order-list {
+    padding: 4px 0;
+}
+
+.card-order-row {
+    padding: 4px 0;
+}
+
+.card-order-button {
+    border-radius: 9px;
+    padding: 5px;
+    color: @ss-muted;
+    background: rgba(232, 228, 216, 0.05);
+}
+
+.card-order-button:hover {
+    background: rgba(232, 228, 216, 0.12);
+    color: @ss-text;
+}
+
+.card-order-button:disabled {
+    opacity: 0.35;
 }
 
 .alert-popover {

@@ -8,15 +8,25 @@ import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 
-from gi.repository import Gtk, GLib, Gdk, Adw, Pango
+from gi.repository import Gtk, GLib, Gdk, Adw
 from importlib import resources
 import threading
 import math
-import html
 import time
 from typing import Dict, Any
 
 from . import collectors, diagnostics, config, formatters
+from .ui.sidebar import build_sidebar
+from .ui.preferences import build_preferences_panel
+from .ui.overview import build_overview_tab, rebuild_card_order_controls
+from .ui.processes import (
+    append_process_row,
+    build_processes_tab,
+    clear_process_list,
+    set_active_process_tab,
+)
+from .ui.disk import build_disk_tab, update_disk_tab
+from .ui.services import build_services_tab, update_services_tab
 
 class SysSenseWindow(Adw.ApplicationWindow):
     """Janela principal do SysSense com interface minimalista em GTK 4.0."""
@@ -92,6 +102,9 @@ class SysSenseWindow(Adw.ApplicationWindow):
         self.toast_overlay.set_child(vbox)
         toolbar_view.set_content(self.toast_overlay)
         self.set_content(toolbar_view)
+        key_controller = Gtk.EventControllerKey()
+        key_controller.connect("key-pressed", self._on_key_pressed)
+        self.add_controller(key_controller)
     
     def _create_loading_page(self) -> Gtk.Widget:
         """Página de loading com spinner."""
@@ -151,63 +164,44 @@ class SysSenseWindow(Adw.ApplicationWindow):
         shell.append(content)
 
         overlay.set_child(shell)
+        overlay.add_overlay(self._create_panel_dismiss_layer())
         overlay.add_overlay(self._create_alert_overlay_panel())
         overlay.add_overlay(self._create_preferences_overlay_panel())
         return overlay
 
+    def _create_panel_dismiss_layer(self) -> Gtk.Widget:
+        """Cria área invisível para fechar painéis internos ao clicar fora."""
+        layer = Gtk.Box()
+        layer.set_hexpand(True)
+        layer.set_vexpand(True)
+        layer.set_halign(Gtk.Align.FILL)
+        layer.set_valign(Gtk.Align.FILL)
+        layer.set_can_target(False)
+        layer.get_style_context().add_class("panel-dismiss-layer")
+        gesture = Gtk.GestureClick()
+        gesture.connect("pressed", self._on_panel_dismiss_pressed)
+        layer.add_controller(gesture)
+        self.panel_dismiss_layer = layer
+        return layer
+
     def _create_sidebar(self) -> Gtk.Widget:
         """Cria a barra lateral de navegação."""
-        sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        sidebar.get_style_context().add_class("sidebar")
-        sidebar.set_size_request(132, -1)
-        sidebar.set_hexpand(False)
-        sidebar.set_halign(Gtk.Align.START)
-        self.sidebar = sidebar
-        self.nav_labels = []
-        self.nav_icons = []
-        
-        self.nav_buttons = []
-        items = [
-            ("Visão Geral", "view-grid-symbolic", 0),
-            ("Processos", "view-list-symbolic", 1),
-            ("Disco", "drive-harddisk-symbolic", 2),
-            ("Serviços", "applications-system-symbolic", 3),
-        ]
-        for title, icon_name, page in items:
-            button = self._create_nav_button(title, icon_name, page)
-            sidebar.append(button)
-            self.nav_buttons.append(button)
-        
-        spacer = Gtk.Box()
-        spacer.set_vexpand(True)
-        sidebar.append(spacer)
-
-        status_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        status_row.append(self._create_alert_indicator())
-        status_row.append(self._create_preferences_button())
-        sidebar.append(status_row)
-        
-        footer = Gtk.Label(label="Auto refresh: 2.5s")
-        footer.set_wrap(True)
-        footer.set_halign(Gtk.Align.START)
-        footer.get_style_context().add_class("brand-subtitle")
-        sidebar.append(footer)
-        self.nav_footer = footer
+        refs = build_sidebar(
+            self._on_nav_clicked,
+            self._toggle_alert_panel,
+            self._toggle_preferences_panel,
+        )
+        self.sidebar = refs.container
+        self.nav_buttons = refs.nav_buttons
+        self.nav_labels = refs.nav_labels
+        self.nav_icons = refs.nav_icons
+        self.alert_indicator = refs.alert_indicator
+        self.preferences_button = refs.preferences_button
+        self.nav_footer = refs.footer
         self._set_active_nav(0)
         GLib.timeout_add(350, self._update_responsive_sidebar)
         
-        return sidebar
-
-    def _create_alert_indicator(self) -> Gtk.Widget:
-        """Cria indicador automático de alertas na sidebar."""
-        button = Gtk.Button.new_from_icon_name("emblem-ok-symbolic")
-        button.set_has_frame(False)
-        button.set_has_tooltip(False)
-        button.get_style_context().add_class("alert-indicator")
-        button.get_style_context().add_class("alert-indicator-ok")
-        button.connect("clicked", self._toggle_alert_panel)
-        self.alert_indicator = button
-        return button
+        return self.sidebar
 
     def _create_alert_overlay_panel(self) -> Gtk.Widget:
         """Cria painel interno de alertas sem popup externo."""
@@ -218,6 +212,7 @@ class SysSenseWindow(Adw.ApplicationWindow):
         self.alert_panel_revealer.set_valign(Gtk.Align.END)
         self.alert_panel_revealer.set_margin_start(self._overlay_panel_start_margin())
         self.alert_panel_revealer.set_margin_bottom(18)
+        self.alert_panel_revealer.set_can_target(False)
 
         panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         panel.get_style_context().add_class("alert-popover")
@@ -246,104 +241,72 @@ class SysSenseWindow(Adw.ApplicationWindow):
         """Alterna o painel interno de riscos."""
         if hasattr(self, "alert_panel_revealer"):
             if hasattr(self, "preferences_panel_revealer"):
+                self.preferences_panel_revealer.set_can_target(False)
                 self.preferences_panel_revealer.set_reveal_child(False)
-            self.alert_panel_revealer.set_reveal_child(
-                not self.alert_panel_revealer.get_reveal_child()
-            )
-
-    def _create_preferences_button(self) -> Gtk.Widget:
-        """Cria botão de preferências mínimas."""
-        button = Gtk.Button.new_from_icon_name("emblem-system-symbolic")
-        button.set_has_frame(False)
-        button.get_style_context().add_class("prefs-button")
-        button.connect("clicked", self._toggle_preferences_panel)
-        self.preferences_button = button
-        return button
+            will_open = not self.alert_panel_revealer.get_reveal_child()
+            self.alert_panel_revealer.set_can_target(will_open)
+            self.alert_panel_revealer.set_reveal_child(will_open)
+            self._set_panel_dismiss_active(will_open)
 
     def _create_preferences_overlay_panel(self) -> Gtk.Widget:
         """Cria painel interno de preferências sem popup externo."""
-        self.preferences_panel_revealer = Gtk.Revealer()
-        self.preferences_panel_revealer.set_transition_type(Gtk.RevealerTransitionType.SLIDE_UP)
-        self.preferences_panel_revealer.set_transition_duration(150)
-        self.preferences_panel_revealer.set_halign(Gtk.Align.START)
-        self.preferences_panel_revealer.set_valign(Gtk.Align.END)
-        self.preferences_panel_revealer.set_margin_start(self._overlay_panel_start_margin())
-        self.preferences_panel_revealer.set_margin_bottom(18)
-
-        popover_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        popover_box.get_style_context().add_class("prefs-popover")
-        popover_box.get_style_context().add_class("prefs-overlay-panel")
-
-        title = Gtk.Label(label="Preferências")
-        title.set_halign(Gtk.Align.START)
-        title.get_style_context().add_class("alert-guide-title")
-        popover_box.append(title)
-
-        refresh_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        refresh_row.get_style_context().add_class("prefs-row")
-        refresh_label = Gtk.Label(label="Atualização")
-        refresh_label.set_halign(Gtk.Align.START)
-        refresh_label.set_hexpand(True)
-        refresh_row.append(refresh_label)
-        self.refresh_combo = Gtk.ComboBoxText()
-        for value in config.REFRESH_OPTIONS_SECONDS:
-            self.refresh_combo.append_text(self._format_refresh_option(value))
-        active_index = config.REFRESH_OPTIONS_SECONDS.index(self.user_config["refresh_interval"])
-        self.refresh_combo.set_active(active_index)
-        self.refresh_combo.connect("changed", self._on_refresh_preference_changed)
-        refresh_row.append(self.refresh_combo)
-        popover_box.append(refresh_row)
-
-        toast_switch = Gtk.Switch()
-        toast_switch.set_active(self.user_config["critical_toasts"])
-        toast_switch.connect("notify::active", self._on_bool_preference_changed, "critical_toasts")
-        popover_box.append(self._create_switch_row("Toasts críticos", toast_switch))
-
-        cards_title = Gtk.Label(label="Cards da dashboard")
-        cards_title.set_halign(Gtk.Align.START)
-        cards_title.get_style_context().add_class("alert-guide-subtitle")
-        popover_box.append(cards_title)
-
-        self.card_switches = {}
-        card_labels = {
-            "cpu": "CPU",
-            "memory": "Memória",
-            "storage": "Armazenamento",
-            "temperature": "Temperatura",
-            "network": "Rede",
-            "load": "Carga",
-            "uptime": "Tempo ligado",
-            "internet": "Internet",
-        }
-        for key, label in card_labels.items():
-            switch = Gtk.Switch()
-            switch.set_active(self.user_config["visible_cards"][key])
-            switch.connect("notify::active", self._on_card_visibility_changed, key)
-            self.card_switches[key] = switch
-            popover_box.append(self._create_switch_row(label, switch))
-
-        self.preferences_panel_revealer.set_child(popover_box)
+        refs = build_preferences_panel(
+            self.user_config,
+            self._overlay_panel_start_margin(),
+            self._on_refresh_preference_changed,
+            self._on_bool_preference_changed,
+            self._on_card_visibility_changed,
+        )
+        self.preferences_panel_revealer = refs.revealer
+        self.refresh_combo = refs.refresh_combo
+        self.card_switches = refs.card_switches
         return self.preferences_panel_revealer
 
     def _toggle_preferences_panel(self, _button: Gtk.Button):
         """Abre ou fecha o painel interno de preferências."""
         if hasattr(self, "preferences_panel_revealer"):
             if hasattr(self, "alert_panel_revealer"):
+                self.alert_panel_revealer.set_can_target(False)
                 self.alert_panel_revealer.set_reveal_child(False)
-            self.preferences_panel_revealer.set_reveal_child(
-                not self.preferences_panel_revealer.get_reveal_child()
-            )
+            will_open = not self.preferences_panel_revealer.get_reveal_child()
+            self.preferences_panel_revealer.set_can_target(will_open)
+            self.preferences_panel_revealer.set_reveal_child(will_open)
+            self._set_panel_dismiss_active(will_open)
 
-    def _create_switch_row(self, label_text: str, switch: Gtk.Switch) -> Gtk.Widget:
-        """Cria linha de preferência com switch."""
-        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        row.get_style_context().add_class("prefs-row")
-        label = Gtk.Label(label=label_text)
-        label.set_halign(Gtk.Align.START)
-        label.set_hexpand(True)
-        row.append(label)
-        row.append(switch)
-        return row
+    def _on_panel_dismiss_pressed(self, _gesture: Gtk.GestureClick, _n_press: int, _x: float, _y: float):
+        """Fecha painéis internos quando o clique ocorre fora deles."""
+        self._close_overlay_panels()
+
+    def _on_key_pressed(
+        self,
+        _controller: Gtk.EventControllerKey,
+        keyval: int,
+        _keycode: int,
+        _state: Gdk.ModifierType,
+    ) -> bool:
+        """Fecha painéis internos com Escape."""
+        if keyval == Gdk.KEY_Escape:
+            return self._close_overlay_panels()
+        return False
+
+    def _close_overlay_panels(self) -> bool:
+        """Fecha painéis flutuantes internos e informa se algo foi fechado."""
+        closed = False
+        if hasattr(self, "alert_panel_revealer") and self.alert_panel_revealer.get_reveal_child():
+            self.alert_panel_revealer.set_can_target(False)
+            self.alert_panel_revealer.set_reveal_child(False)
+            closed = True
+        if hasattr(self, "preferences_panel_revealer") and self.preferences_panel_revealer.get_reveal_child():
+            self.preferences_panel_revealer.set_can_target(False)
+            self.preferences_panel_revealer.set_reveal_child(False)
+            closed = True
+        self._set_panel_dismiss_active(False)
+        return closed
+
+    def _set_panel_dismiss_active(self, active: bool):
+        """Ativa ou desativa camada invisível de clique fora dos painéis."""
+        if hasattr(self, "panel_dismiss_layer"):
+            self.panel_dismiss_layer.set_can_target(active)
 
     def _format_refresh_option(self, seconds: float) -> str:
         """Formata opção de intervalo."""
@@ -362,12 +325,15 @@ class SysSenseWindow(Adw.ApplicationWindow):
         self._save_user_config()
         self._restart_refresh_timer()
         self._refresh_footer_mode()
+        GLib.idle_add(self._release_widget_focus, combo)
         GLib.idle_add(self._close_preferences_panel)
 
     def _close_preferences_panel(self) -> bool:
         """Fecha o painel de preferências quando uma ação discreta termina."""
         if hasattr(self, "preferences_panel_revealer"):
+            self.preferences_panel_revealer.set_can_target(False)
             self.preferences_panel_revealer.set_reveal_child(False)
+        self._set_panel_dismiss_active(False)
         return False
 
     def _on_bool_preference_changed(self, switch: Gtk.Switch, _pspec, key: str):
@@ -383,41 +349,44 @@ class SysSenseWindow(Adw.ApplicationWindow):
         self._save_user_config()
         self._apply_card_visibility()
 
+    def _on_card_order_changed(self, _button: Gtk.Button, key: str, direction: str):
+        """Move um card na ordem persistida da dashboard."""
+        card_order = list(self.user_config.get("card_order", config.DEFAULT_CARD_ORDER))
+        if key not in card_order:
+            return
+        index = card_order.index(key)
+        offset = -1 if direction == "up" else 1
+        new_index = index + offset
+        if new_index < 0 or new_index >= len(card_order):
+            return
+        card_order[index], card_order[new_index] = card_order[new_index], card_order[index]
+        self.user_config["card_order"] = card_order
+        self._save_user_config()
+        self._apply_card_order()
+        self._refresh_card_order_controls()
+
+    def _on_card_order_reset(self, _button: Gtk.Button):
+        """Restaura ordem padrão dos cards."""
+        self.user_config["card_order"] = list(config.DEFAULT_CARD_ORDER)
+        self._save_user_config()
+        self._apply_card_order()
+        self._refresh_card_order_controls()
+
+    def _refresh_card_order_controls(self):
+        """Atualiza lista de controles de ordenação na Visão Geral."""
+        if hasattr(self, "card_order_box"):
+            rebuild_card_order_controls(
+                self.card_order_box,
+                self.user_config["card_order"],
+                self._on_card_order_changed,
+            )
+
     def _restart_refresh_timer(self):
         """Reinicia timer de atualização automática."""
         if self.refresh_timer_id is not None:
             GLib.source_remove(self.refresh_timer_id)
         interval_ms = int(self.user_config["refresh_interval"] * 1000)
         self.refresh_timer_id = GLib.timeout_add(interval_ms, self._on_auto_refresh)
-
-    def _create_nav_button(self, title: str, icon_name: str, page: int) -> Gtk.Widget:
-        """Cria um botão de navegação da sidebar."""
-        button = Gtk.Button()
-        button.get_style_context().add_class("nav-item")
-        button.set_has_frame(False)
-        button.set_hexpand(True)
-        button.set_tooltip_text(title)
-        button.connect('clicked', self._on_nav_clicked, page)
-        
-        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        row.set_halign(Gtk.Align.START)
-        icon = Gtk.Image.new_from_icon_name(icon_name)
-        icon.set_pixel_size(16)
-        icon.get_style_context().add_class("nav-icon")
-        self.nav_icons.append(icon)
-        label = Gtk.Label(label=title)
-        label.set_halign(Gtk.Align.START)
-        label.set_xalign(0)
-        label.set_hexpand(True)
-        label.set_width_chars(8)
-        label.set_max_width_chars(10)
-        label.set_ellipsize(Pango.EllipsizeMode.END)
-        row.append(icon)
-        row.append(label)
-        button.set_child(row)
-        self.nav_labels.append(label)
-        
-        return button
 
     def _on_nav_clicked(self, button: Gtk.Button, page: int):
         """Alterna páginas pelo menu lateral."""
@@ -478,124 +447,56 @@ class SysSenseWindow(Adw.ApplicationWindow):
         
     def _create_overview_tab(self) -> Gtk.Widget:
         """Aba de Visão Geral."""
-        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        page.set_hexpand(True)
-        page.set_vexpand(True)
-
-        scrolled = Gtk.ScrolledWindow()
-        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
-        scrolled.set_hexpand(True)
-        scrolled.set_vexpand(True)
-        self.overview_scrolled = scrolled
-
-        flow = Gtk.FlowBox()
-        flow.get_style_context().add_class("overview-flow")
-        flow.set_selection_mode(Gtk.SelectionMode.NONE)
-        flow.set_max_children_per_line(3)
-        flow.set_min_children_per_line(1)
-        flow.set_column_spacing(8)
-        flow.set_row_spacing(8)
-        flow.set_homogeneous(False)
-        flow.set_margin_top(4)
-        flow.set_margin_bottom(16)
-        flow.set_margin_start(2)
-        flow.set_margin_end(2)
-        self.overview_flow = flow
-        self.overview_cards = []
-        self.overview_card_widgets = {}
-        self.overview_card_flow_children = {}
-        
-        # CPU
-        self.cpu_label = Gtk.Label()
-        self.cpu_progressbar = Gtk.ProgressBar()
-        self.cpu_alert_label = self._create_inline_alert_label()
-        self.cpu_card = self._create_metric_card(
-            "CPU",
-            self.cpu_label,
-            self.cpu_progressbar,
-            "light-card",
-            self.cpu_alert_label
+        refs = build_overview_tab(
+            self.user_config["card_order"],
+            self._on_speedtest_clicked,
+            self._on_disk_partition_selected,
+            self._draw_disk_chart,
+            self._on_card_order_changed,
+            self._on_card_order_reset,
         )
-        self._append_overview_card(self.cpu_card, "cpu")
-        
-        # Memória
-        self.mem_label = Gtk.Label()
-        self.mem_progressbar = Gtk.ProgressBar()
-        self.mem_alert_label = self._create_inline_alert_label()
-        self.mem_card = self._create_metric_card(
-            "Memória RAM",
-            self.mem_label,
-            self.mem_progressbar,
-            None,
-            self.mem_alert_label
-        )
-        self._append_overview_card(self.mem_card, "memory")
-        
-        # Disco
-        self.disk_label = Gtk.Label()
-        self.disk_progressbar = Gtk.ProgressBar()
-        self.disk_alert_label = self._create_inline_alert_label()
-        self.disk_overview_card = self._create_disk_overview_card()
-        self._append_overview_card(self.disk_overview_card, "storage")
-        
-        # Temperatura
-        self.temp_label = Gtk.Label()
-        self.temp_card = self._create_info_card("Temperatura", self.temp_label)
-        self._append_overview_card(self.temp_card, "temperature")
-        
-        # Rede
-        self.net_label = Gtk.Label()
-        self.net_card = self._create_info_card("Tráfego de Rede", self.net_label)
-        self._append_overview_card(self.net_card, "network")
-        
-        # Load Average
-        self.load_label = Gtk.Label()
-        self.load_card = self._create_info_card("Carga do Sistema", self.load_label)
-        self.load_card.set_tooltip_text("Carga média do sistema. Compare esses valores com a quantidade de núcleos da CPU.")
-        self._append_overview_card(self.load_card, "load")
-        
-        # Uptime
-        self.uptime_label = Gtk.Label()
-        self.uptime_card = self._create_info_card("Tempo Ligado", self.uptime_label, "wide-card")
-        self._append_overview_card(self.uptime_card, "uptime")
-        
-        speed_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        speed_panel.get_style_context().add_class("card-custom")
-        speed_panel.set_size_request(210, 88)
-        self.speed_panel = speed_panel
-        speed_title = Gtk.Label(label="Internet")
-        speed_title.set_halign(Gtk.Align.START)
-        speed_title.get_style_context().add_class("section-title")
-        speed_button = Gtk.Button(label="Testar Velocidade")
-        speed_button.get_style_context().add_class("suggested-action")
-        speed_button.connect('clicked', self._on_speedtest_clicked)
-        self.speed_button = speed_button
-        self.speed_result_label = Gtk.Label()
-        self.speed_result_label.set_wrap(False)
-        self.speed_result_label.set_single_line_mode(True)
-        self.speed_result_label.set_width_chars(26)
-        self.speed_result_label.set_max_width_chars(26)
-        self.speed_result_label.set_ellipsize(Pango.EllipsizeMode.END)
-        self.speed_result_label.set_halign(Gtk.Align.START)
-        self.speed_result_label.set_xalign(0)
-        self.speed_result_label.get_style_context().add_class("subtitle-text")
-        speed_panel.append(speed_title)
-        speed_panel.append(speed_button)
-        speed_panel.append(self.speed_result_label)
-        self._append_overview_card(speed_panel, "internet")
-        
-        scrolled.set_child(flow)
-        page.append(scrolled)
+        self.overview_scrolled = refs.scrolled
+        self.overview_flow = refs.flow
+        self.card_order_box = refs.card_order_box
+        self.overview_cards = refs.cards
+        self.overview_card_widgets = refs.card_widgets
+        self.overview_card_flow_children = refs.card_flow_children
+        self.cpu_card = refs.cpu_card
+        self.cpu_label = refs.cpu_label
+        self.cpu_progressbar = refs.cpu_progressbar
+        self.cpu_alert_label = refs.cpu_alert_label
+        self.mem_card = refs.mem_card
+        self.mem_label = refs.mem_label
+        self.mem_progressbar = refs.mem_progressbar
+        self.mem_alert_label = refs.mem_alert_label
+        self.disk_overview_card = refs.disk_overview_card
+        self.disk_label = refs.disk_label
+        self.disk_progressbar = refs.disk_progressbar
+        self.disk_alert_label = refs.disk_alert_label
+        self.disk_chart_detail_label = refs.disk_chart_detail_label
+        self.disk_chart = refs.disk_chart
+        self.disk_partition_menu = refs.disk_partition_menu
+        self.disk_partition_popover = refs.disk_partition_popover
+        self.disk_partition_options_box = refs.disk_partition_options_box
+        self.temp_card = refs.temp_card
+        self.temp_label = refs.temp_label
+        self.net_card = refs.net_card
+        self.net_label = refs.net_label
+        self.load_card = refs.load_card
+        self.load_label = refs.load_label
+        self.uptime_card = refs.uptime_card
+        self.uptime_label = refs.uptime_label
+        self.speed_panel = refs.speed_panel
+        self.speed_button = refs.speed_button
+        self.speed_result_label = refs.speed_result_label
+        self.disk_partitions_data = []
+        self.disk_partitions_signature = None
+        self.selected_disk_partition = "Tudo"
+        self.overview_flow.set_sort_func(self._compare_overview_cards)
         self._apply_cards_overview_layout()
+        self._apply_card_order()
         self._apply_card_visibility()
-        return page
-
-    def _append_overview_card(self, card: Gtk.Widget, key: str):
-        """Adiciona card à visão geral e guarda referência para responsividade."""
-        self.overview_flow.append(card)
-        self.overview_cards.append(card)
-        self.overview_card_widgets[key] = card
-        self.overview_card_flow_children[key] = card.get_parent()
+        return refs.page
 
     def _apply_cards_overview_layout(self):
         """Mantém a visão geral sempre no modo cards compactos."""
@@ -605,6 +506,24 @@ class SysSenseWindow(Adw.ApplicationWindow):
         for card in self.overview_cards:
             card.set_size_request(168, 88)
         self.disk_overview_card.set_size_request(192, 140)
+
+    def _compare_overview_cards(
+        self,
+        child_a: Gtk.FlowBoxChild,
+        child_b: Gtk.FlowBoxChild,
+        _user_data=None,
+    ) -> int:
+        """Ordena cards conforme preferência persistida."""
+        order = self.user_config.get("card_order", config.DEFAULT_CARD_ORDER)
+        positions = {key: index for index, key in enumerate(order)}
+        key_a = getattr(child_a, "syssense_card_key", "")
+        key_b = getattr(child_b, "syssense_card_key", "")
+        return positions.get(key_a, 999) - positions.get(key_b, 999)
+
+    def _apply_card_order(self):
+        """Aplica ordenação manual salva aos cards da dashboard."""
+        if hasattr(self, "overview_flow"):
+            self.overview_flow.invalidate_sort()
 
     def _apply_card_visibility(self):
         """Aplica preferências de visibilidade dos cards."""
@@ -626,91 +545,16 @@ class SysSenseWindow(Adw.ApplicationWindow):
 
     def _create_processes_tab(self) -> Gtk.Widget:
         """Aba de Processos com navegação animada entre visões."""
-        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        vbox.get_style_context().add_class("process-page")
-
-        self.process_runtime_notice = Gtk.Label()
-        self.process_runtime_notice.set_halign(Gtk.Align.START)
-        self.process_runtime_notice.set_xalign(0)
-        self.process_runtime_notice.set_wrap(True)
-        self.process_runtime_notice.get_style_context().add_class("runtime-notice")
-        self.process_runtime_notice.set_visible(False)
-        vbox.append(self.process_runtime_notice)
-
-        tab_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        tab_bar.get_style_context().add_class("process-tab-bar")
-        self.process_tab_buttons = []
-        for label, page_name in (
-            ("Por Memória", "memory"),
-            ("Por CPU", "cpu"),
-            ("Comparar", "compare"),
-        ):
-            button = self._create_process_tab_button(label, page_name)
-            self.process_tab_buttons.append(button)
-            tab_bar.append(button)
-        vbox.append(tab_bar)
-
-        self.process_stack = Gtk.Stack()
-        self.process_stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
-        self.process_stack.set_transition_duration(160)
-        
-        self.mem_list = self._create_process_list(['Processo', 'PID', 'CPU %', 'Memória %'], [3, 1, 1, 1])
-        self.process_stack.add_named(self._create_table_scroller(self.mem_list), "memory")
-        
-        self.cpu_proc_list = self._create_process_list(['Processo', 'PID', 'CPU %', 'Memória %'], [3, 1, 1, 1])
-        self.process_stack.add_named(self._create_table_scroller(self.cpu_proc_list), "cpu")
-        
-        compare_flow = Gtk.FlowBox()
-        compare_flow.get_style_context().add_class("compare-flow")
-        compare_flow.set_selection_mode(Gtk.SelectionMode.NONE)
-        compare_flow.set_min_children_per_line(1)
-        compare_flow.set_max_children_per_line(2)
-        compare_flow.set_column_spacing(10)
-        compare_flow.set_row_spacing(10)
-        compare_flow.set_homogeneous(True)
-        
-        left_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        left_box.get_style_context().add_class("compare-panel")
-        left_box.set_margin_start(8)
-        left_box.set_margin_end(4)
-        left_label = Gtk.Label(label="Por Memória")
-        left_label.get_style_context().add_class("section-title")
-        left_box.append(left_label)
-        self.compare_mem_list = self._create_process_list(['Processo', 'Memória %'], [2, 1], base_width=72)
-        left_box.append(self._create_table_scroller(self.compare_mem_list, min_height=400))
-        
-        right_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        right_box.get_style_context().add_class("compare-panel")
-        right_box.set_margin_start(4)
-        right_box.set_margin_end(8)
-        right_label = Gtk.Label(label="Por CPU")
-        right_label.get_style_context().add_class("section-title")
-        right_box.append(right_label)
-        self.compare_cpu_list = self._create_process_list(['Processo', 'CPU %'], [2, 1], base_width=72)
-        right_box.append(self._create_table_scroller(self.compare_cpu_list, min_height=400))
-        
-        left_box.set_hexpand(True)
-        left_box.set_vexpand(True)
-        right_box.set_hexpand(True)
-        right_box.set_vexpand(True)
-        compare_flow.append(left_box)
-        compare_flow.append(right_box)
-        
-        self.process_stack.add_named(compare_flow, "compare")
-        self.process_stack.set_visible_child_name("memory")
+        refs = build_processes_tab(self._on_process_tab_clicked)
+        self.process_runtime_notice = refs.runtime_notice
+        self.process_tab_buttons = refs.tab_buttons
+        self.process_stack = refs.stack
+        self.mem_list = refs.mem_list
+        self.cpu_proc_list = refs.cpu_proc_list
+        self.compare_mem_list = refs.compare_mem_list
+        self.compare_cpu_list = refs.compare_cpu_list
         self._set_active_process_tab("memory")
-        self.process_stack.set_hexpand(True)
-        self.process_stack.set_vexpand(True)
-        vbox.append(self.process_stack)
-        return vbox
-
-    def _create_process_tab_button(self, label: str, page_name: str) -> Gtk.Widget:
-        """Cria botão de navegação interna da aba Processos."""
-        button = Gtk.Button(label=label)
-        button.set_has_frame(False)
-        button.get_style_context().add_class("process-tab-button")
-        button.connect("clicked", self._on_process_tab_clicked, page_name)
-        return button
+        return refs.page
 
     def _on_process_tab_clicked(self, _button: Gtk.Button, page_name: str):
         """Alterna visão interna de processos com transição."""
@@ -719,125 +563,55 @@ class SysSenseWindow(Adw.ApplicationWindow):
 
     def _set_active_process_tab(self, page_name: str):
         """Marca botão ativo da navegação interna de Processos."""
-        names = ("memory", "cpu", "compare")
-        for button, name in zip(getattr(self, "process_tab_buttons", []), names):
-            if name == page_name:
-                button.get_style_context().add_class("active")
-            else:
-                button.get_style_context().remove_class("active")
+        set_active_process_tab(getattr(self, "process_tab_buttons", []), page_name)
     
     def _create_disk_tab(self) -> Gtk.Widget:
         """Aba de Disco."""
-        scrolled = Gtk.ScrolledWindow()
-        
-        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        vbox.set_margin_start(12)
-        vbox.set_margin_end(12)
-        vbox.set_margin_top(12)
-        vbox.set_margin_bottom(12)
-        
-        self.disk_partitions_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        vbox.append(self.disk_partitions_box)
-        
-        scrolled.set_child(vbox)
-        return scrolled
+        refs = build_disk_tab()
+        self.disk_partitions_box = refs.partitions_box
+        return refs.page
     
     def _create_services_tab(self) -> Gtk.Widget:
         """Aba de Serviços."""
-        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        vbox.set_margin_start(12)
-        vbox.set_margin_end(12)
-        vbox.set_margin_top(12)
-        vbox.set_margin_bottom(12)
-        
-        controls = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        refresh_button = Gtk.Button(label="Atualizar")
-        refresh_button.connect('clicked', self._on_refresh_services)
-        controls.append(refresh_button)
-        self.services_refresh_button = refresh_button
-        self.services_status_label = Gtk.Label(label="Atualizado sob demanda")
-        self.services_status_label.set_halign(Gtk.Align.START)
-        self.services_status_label.get_style_context().add_class("status-pill")
-        controls.append(self.services_status_label)
-        vbox.append(controls)
-        
-        scrolled = Gtk.ScrolledWindow()
-        self.services_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        scrolled.set_child(self.services_box)
-        scrolled.set_hexpand(True)
-        scrolled.set_vexpand(True)
-        vbox.append(scrolled)
-        
-        return vbox
+        refs = build_services_tab(self._on_refresh_services)
+        self.services_refresh_button = refs.refresh_button
+        self.services_status_label = refs.status_label
+        self.services_box = refs.services_box
+        return refs.page
     
-    def _create_disk_overview_card(self) -> Gtk.Widget:
-        """Cria o card de armazenamento com gráfico de partições."""
-        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        card.get_style_context().add_class("card-custom")
-        card.get_style_context().add_class("disk-chart-card")
-        card.set_size_request(240, 184)
-
-        header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        title = Gtk.Label()
-        title.set_markup("<b>Armazenamento</b>")
-        title.set_halign(Gtk.Align.START)
-        title.set_hexpand(True)
-        self.disk_partition_combo = Gtk.ComboBoxText()
-        self.disk_partition_combo.get_style_context().add_class("disk-partition-combo")
-        self.disk_partition_combo.set_size_request(78, -1)
-        self.disk_partition_combo.append_text("Tudo")
-        self.disk_partition_combo.set_active(0)
-        self.disk_partition_combo.connect('changed', self._on_disk_partition_changed)
-        header.append(title)
-        header.append(self.disk_partition_combo)
-        card.append(header)
-
-        chart_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        chart_row.get_style_context().add_class("disk-chart-row")
-        chart_row.set_size_request(204, 92)
-        self.disk_chart = Gtk.DrawingArea()
-        self.disk_chart.set_size_request(92, 92)
-        self.disk_chart.set_content_width(92)
-        self.disk_chart.set_content_height(92)
-        self.disk_chart.set_draw_func(self._draw_disk_chart)
-        chart_row.append(self.disk_chart)
-
-        info_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
-        info_box.get_style_context().add_class("disk-info-box")
-        info_box.set_size_request(118, 86)
-        info_box.set_valign(Gtk.Align.CENTER)
-        self.disk_label.set_halign(Gtk.Align.START)
-        self.disk_label.set_xalign(0)
-        self.disk_label.set_wrap(False)
-        self.disk_label.set_width_chars(16)
-        self.disk_label.set_max_width_chars(16)
-        self.disk_label.set_ellipsize(Pango.EllipsizeMode.END)
-        self.disk_label.get_style_context().add_class("subtitle-text")
-        self.disk_chart_detail_label = Gtk.Label(label="Aguardando dados")
-        self.disk_chart_detail_label.set_halign(Gtk.Align.START)
-        self.disk_chart_detail_label.set_xalign(0)
-        self.disk_chart_detail_label.set_wrap(False)
-        self.disk_chart_detail_label.set_width_chars(16)
-        self.disk_chart_detail_label.set_max_width_chars(16)
-        self.disk_chart_detail_label.set_ellipsize(Pango.EllipsizeMode.END)
-        self.disk_chart_detail_label.get_style_context().add_class("subtitle-text")
-        self.disk_progressbar.set_hexpand(True)
-        info_box.append(self.disk_label)
-        info_box.append(self.disk_chart_detail_label)
-        info_box.append(self.disk_progressbar)
-        chart_row.append(info_box)
-        card.append(chart_row)
-        card.append(self.disk_alert_label)
-
-        self.disk_partitions_data = []
-        self.disk_partitions_signature = None
-        self.selected_disk_partition = "Tudo"
-        return card
-
-    def _on_disk_partition_changed(self, combo: Gtk.ComboBoxText):
+    def _on_disk_partition_selected(self, _button: Gtk.Button, title: str):
         """Atualiza o gráfico quando a partição selecionada muda."""
-        self.selected_disk_partition = combo.get_active_text() or "Tudo"
+        self.selected_disk_partition = title or "Tudo"
+        self.disk_partition_menu.set_property("label", self.selected_disk_partition)
+        self._rebuild_disk_partition_options(self._disk_partition_titles(), self.selected_disk_partition)
+        self.disk_partition_popover.popdown()
         self._update_disk_overview_card()
+        GLib.idle_add(self._release_widget_focus, self.disk_partition_menu)
+
+    def _release_widget_focus(self, widget: Gtk.Widget) -> bool:
+        """Solta foco após seleção para evitar cliques presos."""
+        root = widget.get_root()
+        if isinstance(root, Gtk.Window):
+            root.set_focus(None)
+        return False
+
+    def _disk_partition_titles(self) -> tuple[str, ...]:
+        """Retorna títulos disponíveis para o seletor de armazenamento."""
+        partitions = getattr(self, 'disk_partitions_data', [])
+        return ("Tudo",) + tuple(self._disk_partition_title(part) for part in partitions)
+
+    def _rebuild_disk_partition_options(self, titles: tuple[str, ...], selected: str):
+        """Reconstrói opções do seletor de armazenamento."""
+        self._clear_box(self.disk_partition_options_box)
+        for title in titles:
+            button = Gtk.Button(label=title)
+            button.set_has_frame(False)
+            button.set_halign(Gtk.Align.FILL)
+            button.get_style_context().add_class("disk-partition-option")
+            if title == selected:
+                button.get_style_context().add_class("active")
+            button.connect("clicked", self._on_disk_partition_selected, title)
+            self.disk_partition_options_box.append(button)
 
     def _update_disk_overview_card(self):
         """Atualiza texto e gráfico do card de armazenamento."""
@@ -889,22 +663,18 @@ class SysSenseWindow(Adw.ApplicationWindow):
         up_rate = max(sent - previous.get('bytes_sent', sent), 0) / elapsed
         return formatters.format_network_rates(down_rate, up_rate), tooltip
 
-    def _sync_disk_partition_combo(self, partitions: list):
+    def _sync_disk_partition_selector(self, partitions: list):
         """Sincroniza opções do seletor de partições."""
         signature = tuple(self._disk_partition_title(part) for part in partitions)
         if signature == self.disk_partitions_signature:
             return
         current = getattr(self, 'selected_disk_partition', "Tudo")
-        self.disk_partition_combo.remove_all()
-        self.disk_partition_combo.append_text("Tudo")
-        for title in signature:
-            self.disk_partition_combo.append_text(title)
-        active = 0
-        if current in signature:
-            active = list(signature).index(current) + 1
-        self.disk_partition_combo.set_active(active)
+        selected = current if current in signature else "Tudo"
+        titles = ("Tudo",) + signature
+        self._rebuild_disk_partition_options(titles, selected)
+        self.disk_partition_menu.set_property("label", selected)
         self.disk_partitions_signature = signature
-        self.selected_disk_partition = self.disk_partition_combo.get_active_text() or "Tudo"
+        self.selected_disk_partition = selected
 
     def _disk_partition_title(self, part: Dict[str, Any]) -> str:
         """Nome curto para exibição no seletor de partição."""
@@ -956,127 +726,6 @@ class SysSenseWindow(Adw.ApplicationWindow):
 
         part = next((p for p in partitions if self._disk_partition_title(p) == selected), partitions[0])
         return part.get('used', 0), part.get('total', 0)
-
-    def _create_metric_card(
-        self,
-        title: str,
-        label: Gtk.Label,
-        progress: Gtk.ProgressBar,
-        extra_class: str | None = None,
-        alert_label: Gtk.Widget | None = None
-    ) -> Gtk.Widget:
-        """Cria card de métrica."""
-        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        card.get_style_context().add_class("card-custom")
-        card.get_style_context().add_class("metric-card")
-        if extra_class:
-            card.get_style_context().add_class(extra_class)
-        card.set_size_request(210, 116)
-        
-        title_label = Gtk.Label()
-        title_label.set_markup(f"<b>{title}</b>")
-        title_label.set_halign(Gtk.Align.START)
-        card.append(title_label)
-        
-        label.set_halign(Gtk.Align.START)
-        label.get_style_context().add_class("subtitle-text")
-        card.append(label)
-        
-        progress.set_hexpand(True)
-        card.append(progress)
-
-        if alert_label:
-            card.append(alert_label)
-        
-        return card
-
-    def _create_inline_alert_label(self) -> Gtk.Widget:
-        """Cria um texto curto de alerta para cards."""
-        revealer = Gtk.Revealer()
-        revealer.set_transition_type(Gtk.RevealerTransitionType.SLIDE_DOWN)
-        revealer.set_transition_duration(160)
-        label = Gtk.Label()
-        label.set_halign(Gtk.Align.START)
-        label.set_xalign(0)
-        label.get_style_context().add_class("inline-alert")
-        revealer.set_child(label)
-        revealer.set_reveal_child(False)
-        return revealer
-    
-    def _create_info_card(self, title: str, label: Gtk.Label, extra_class: str | None = None) -> Gtk.Widget:
-        """Cria card de informação."""
-        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        card.get_style_context().add_class("card-custom")
-        if extra_class:
-            card.get_style_context().add_class(extra_class)
-        card.set_size_request(210, 104)
-        
-        title_label = Gtk.Label()
-        title_label.set_markup(f"<b>{title}</b>")
-        title_label.set_halign(Gtk.Align.START)
-        card.append(title_label)
-        
-        label.set_halign(Gtk.Align.START)
-        label.set_wrap(True)
-        label.get_style_context().add_class("subtitle-text")
-        card.append(label)
-        
-        return card
-    
-    def _create_process_list(self, headers: list[str], weights: list[int], base_width: int = 94) -> Gtk.Widget:
-        """Cria lista de processos com hover unificado por linha."""
-        outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        outer.get_style_context().add_class("process-list")
-        outer.process_weights = weights
-        outer.process_base_width = base_width
-
-        header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        header.get_style_context().add_class("process-header")
-        for title, weight in zip(headers, weights):
-            label = Gtk.Label(label=title)
-            label.set_xalign(0 if title == 'Processo' else 0.5)
-            label.set_hexpand(True)
-            label.set_size_request(base_width * weight, -1)
-            header.append(label)
-        outer.append(header)
-
-        listbox = Gtk.ListBox()
-        listbox.get_style_context().add_class("process-list")
-        listbox.set_selection_mode(Gtk.SelectionMode.NONE)
-        outer.process_listbox = listbox
-        outer.append(listbox)
-        return outer
-
-    def _append_process_row(self, process_list: Gtk.Widget, values: list[str]):
-        """Adiciona uma linha de processo a uma lista."""
-        row = Gtk.ListBoxRow()
-        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        box.get_style_context().add_class("process-row")
-        weights = getattr(process_list, 'process_weights', [1] * len(values))
-        base_width = getattr(process_list, 'process_base_width', 94)
-        for i, (value, weight) in enumerate(zip(values, weights)):
-            label = Gtk.Label(label=str(value))
-            label.set_xalign(0 if i == 0 else 0.5)
-            label.set_ellipsize(Pango.EllipsizeMode.END)
-            label.set_tooltip_text(str(value))
-            label.set_hexpand(True)
-            label.set_size_request(base_width * weight, -1)
-            box.append(label)
-        row.set_child(box)
-        process_list.process_listbox.append(row)
-
-    def _clear_process_list(self, process_list: Gtk.Widget):
-        """Remove todas as linhas de uma lista de processos."""
-        self._clear_box(process_list.process_listbox)
-
-    def _create_table_scroller(self, child: Gtk.Widget, min_height: int = 420) -> Gtk.Widget:
-        """Cria uma área de tabela com respiro visual."""
-        scrolled = Gtk.ScrolledWindow()
-        scrolled.get_style_context().add_class("process-card")
-        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        scrolled.set_min_content_height(min_height)
-        scrolled.set_child(child)
-        return scrolled
 
     def _clear_box(self, box: Gtk.Box):
         """Remove todos os filhos de um Gtk.Box no GTK 4."""
@@ -1214,6 +863,7 @@ class SysSenseWindow(Adw.ApplicationWindow):
         button.set_sensitive(False)
         button.set_label("Testando...")
         self.speed_result_label.set_text("Executando teste")
+        self.speed_result_label.set_tooltip_text(None)
         thread = threading.Thread(target=self._run_speedtest, daemon=True)
         thread.start()
     
@@ -1234,7 +884,7 @@ class SysSenseWindow(Adw.ApplicationWindow):
             )
         else:
             error = result.get('error', 'Desconhecido')
-            text = "Erro no teste"
+            text = "Teste indisponível"
             self.speed_result_label.set_tooltip_text(error)
         
         self.speed_result_label.set_text(text)
@@ -1264,7 +914,7 @@ class SysSenseWindow(Adw.ApplicationWindow):
         self.mem_progressbar.set_fraction(mem_pct / 100)
         
         self.disk_partitions_data = disco.get('partitions', [])
-        self._sync_disk_partition_combo(self.disk_partitions_data)
+        self._sync_disk_partition_selector(self.disk_partitions_data)
         self._update_disk_overview_card()
         
         if temp.get('disponivel'):
@@ -1492,141 +1142,38 @@ class SysSenseWindow(Adw.ApplicationWindow):
         """Atualiza Processos."""
         procs = data.get('processos', {})
         
-        self._clear_process_list(self.mem_list)
+        clear_process_list(self.mem_list)
         for proc in procs.get('by_memory', []):
-            self._append_process_row(self.mem_list, [
+            append_process_row(self.mem_list, [
                 proc['name'],
                 proc['pid'],
                 f"{proc.get('cpu_percent', 0):.1f}",
                 f"{proc.get('memory_percent', 0):.1f}",
             ])
         
-        self._clear_process_list(self.cpu_proc_list)
+        clear_process_list(self.cpu_proc_list)
         for proc in procs.get('by_cpu', []):
-            self._append_process_row(self.cpu_proc_list, [
+            append_process_row(self.cpu_proc_list, [
                 proc['name'],
                 proc['pid'],
                 f"{proc.get('cpu_percent', 0):.1f}",
                 f"{proc.get('memory_percent', 0):.1f}",
             ])
         
-        self._clear_process_list(self.compare_mem_list)
+        clear_process_list(self.compare_mem_list)
         for proc in procs.get('by_memory', [])[:10]:
-            self._append_process_row(self.compare_mem_list, [proc['name'], f"{proc.get('memory_percent', 0):.1f}"])
+            append_process_row(self.compare_mem_list, [proc['name'], f"{proc.get('memory_percent', 0):.1f}"])
         
-        self._clear_process_list(self.compare_cpu_list)
+        clear_process_list(self.compare_cpu_list)
         for proc in procs.get('by_cpu', [])[:10]:
-            self._append_process_row(self.compare_cpu_list, [proc['name'], f"{proc.get('cpu_percent', 0):.1f}"])
+            append_process_row(self.compare_cpu_list, [proc['name'], f"{proc.get('cpu_percent', 0):.1f}"])
     
     def _update_disk(self, data: Dict[str, Any]):
         """Atualiza Disco."""
-        self._clear_box(self.disk_partitions_box)
-        
-        disco = data.get('disco', {})
-        
-        for part in disco.get('partitions', []):
-            card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-            card.get_style_context().add_class("card-custom")
-            
-            name_label = Gtk.Label()
-            name_label.set_markup(f"<b>{part['device']}</b> • {part['mountpoint']}")
-            name_label.set_halign(Gtk.Align.START)
-            card.append(name_label)
-            
-            total_gb = part['total'] / (1024**3)
-            used_gb = part['used'] / (1024**3)
-            free_gb = part['free'] / (1024**3)
-            pct = part['percent']
-            
-            info_label = Gtk.Label()
-            info_label.set_text(
-                f"Usado: {used_gb:.1f} GB / {total_gb:.1f} GB ({pct:.1f}%) | "
-                f"Livre: {free_gb:.1f} GB | {part.get('fstype', 'fs')}"
-            )
-            info_label.set_halign(Gtk.Align.START)
-            info_label.get_style_context().add_class("subtitle-text")
-            card.append(info_label)
-            
-            pbar = Gtk.ProgressBar()
-            pbar.set_fraction(pct / 100)
-            card.append(pbar)
-            
-            if pct > 70:
-                alert_label = Gtk.Label()
-                alert_label.set_text("⚠️ Espaço em disco limitado")
-                alert_label.get_style_context().add_class("alert-medium")
-                alert_label.set_halign(Gtk.Align.START)
-                card.append(alert_label)
-            
-            self.disk_partitions_box.append(card)
+        update_disk_tab(self.disk_partitions_box, data.get('disco', {}))
         
     
     def _update_services(self, services: Dict[str, Any], logs: Dict[str, Any]):
         """Atualiza Serviços."""
-        self._clear_box(self.services_box)
-        
-        failed_count = services.get('count', 0)
-        service_error = services.get('error')
-        logs_error = logs.get('error')
-
-        if service_error:
-            state_label = Gtk.Label()
-            state_label.set_markup("<b>Indisponível</b>")
-            state_label.set_halign(Gtk.Align.START)
-            self.services_box.append(state_label)
-            error_label = Gtk.Label(label=f"Serviços indisponíveis: {service_error}")
-            error_label.set_wrap(True)
-            error_label.set_halign(Gtk.Align.START)
-            error_label.get_style_context().add_class("alert-medium")
-            self.services_box.append(error_label)
-        
-        if failed_count == 0 and not service_error:
-            state_label = Gtk.Label()
-            state_label.set_markup("<b>Tudo certo</b>")
-            state_label.set_halign(Gtk.Align.START)
-            self.services_box.append(state_label)
-            label = Gtk.Label(label="Nenhum serviço systemd com falha foi encontrado.")
-            label.get_style_context().add_class("subtitle-text")
-            label.set_halign(Gtk.Align.START)
-            self.services_box.append(label)
-        else:
-            title = Gtk.Label()
-            title.set_markup(f"<b>Falhas detectadas</b> • {failed_count} serviço(s)")
-            title.set_halign(Gtk.Align.START)
-            if failed_count:
-                self.services_box.append(title)
-            
-            for service in services.get('failed_services', []):
-                service_label = Gtk.Label()
-                name = html.escape(service.get('name', 'Serviço desconhecido'))
-                state = html.escape(service.get('state', 'estado desconhecido'))
-                service_label.set_markup(f"<b>{name}</b> [{state}]")
-                service_label.set_halign(Gtk.Align.START)
-                self.services_box.append(service_label)
-        
-        logs_title = Gtk.Label()
-        logs_title.set_markup(f"<b>Logs Recentes</b>")
-        logs_title.set_halign(Gtk.Align.START)
-        logs_title.set_margin_top(16)
-        self.services_box.append(logs_title)
-
-        log_lines = logs.get('logs', [])[-20:]
-        if logs_error:
-            log_error_label = Gtk.Label(label=f"Logs indisponíveis: {logs_error}")
-            log_error_label.set_wrap(True)
-            log_error_label.set_halign(Gtk.Align.START)
-            log_error_label.get_style_context().add_class("alert-medium")
-            self.services_box.append(log_error_label)
-        elif not log_lines:
-            empty_logs_label = Gtk.Label(label="Nenhum log recente retornado.")
-            empty_logs_label.set_halign(Gtk.Align.START)
-            empty_logs_label.get_style_context().add_class("subtitle-text")
-            self.services_box.append(empty_logs_label)
-
-        for log_line in log_lines:
-            log_label = Gtk.Label(label=log_line.strip())
-            log_label.set_wrap(True)
-            log_label.set_halign(Gtk.Align.START)
-            log_label.get_style_context().add_class("subtitle-text")
-            self.services_box.append(log_label)
+        update_services_tab(self.services_box, services, logs)
         

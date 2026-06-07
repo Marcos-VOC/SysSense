@@ -1,5 +1,7 @@
 import unittest
 import subprocess
+import sys
+import types
 from unittest.mock import patch
 
 from syssense import collectors
@@ -83,6 +85,64 @@ class CollectorsTest(unittest.TestCase):
 
         self.assertFalse(result["success"])
         self.assertIn("speedtest-cli", result["error"])
+
+    def test_speedtest_uses_timeout_and_secure_mode(self):
+        created = {}
+
+        class FakeResults:
+            def dict(self):
+                return {
+                    "download": 120_000_000,
+                    "upload": 30_000_000,
+                    "ping": 11.2,
+                    "server": {"sponsor": "Servidor Teste"},
+                }
+
+        class FakeSpeedtest:
+            def __init__(self, timeout, secure):
+                created["timeout"] = timeout
+                created["secure"] = secure
+                self.results = FakeResults()
+
+            def get_servers(self, servers):
+                created["servers"] = servers
+
+            def get_best_server(self):
+                created["best"] = True
+
+            def download(self):
+                created["download"] = True
+
+            def upload(self):
+                created["upload"] = True
+
+        fake_module = types.SimpleNamespace(Speedtest=FakeSpeedtest)
+        with patch.dict(sys.modules, {"speedtest": fake_module}):
+            result = collectors.speedtest(timeout=7)
+
+        self.assertTrue(result["success"])
+        self.assertEqual(created["timeout"], 7)
+        self.assertTrue(created["secure"])
+        self.assertEqual(created["servers"], [])
+        self.assertEqual(result["download_mbps"], 120.0)
+        self.assertEqual(result["upload_mbps"], 30.0)
+        self.assertEqual(result["server"], "Servidor Teste")
+
+    def test_speedtest_returns_friendly_timeout_error(self):
+        class FakeSpeedtest:
+            def __init__(self, timeout, secure):
+                pass
+
+            def get_servers(self, servers):
+                raise TimeoutError("timed out <internal>")
+
+        fake_module = types.SimpleNamespace(Speedtest=FakeSpeedtest)
+        with patch.dict(sys.modules, {"speedtest": fake_module}):
+            result = collectors.speedtest()
+
+        self.assertFalse(result["success"])
+        self.assertIn("Tempo esgotado", result["error"])
+        self.assertNotIn("<internal>", result["error"])
 
 
 if __name__ == "__main__":

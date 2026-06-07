@@ -126,10 +126,14 @@ Decisão atual: manter a UI em Python por enquanto e priorizar CSS/formatadores/
 
 1. Extrair `formatters.py` com testes. Concluído na primeira etapa de reestruturação.
 2. Extrair `styles.css` sem alterar aparência. Concluído na primeira etapa de reestruturação.
-3. Criar `ui/sidebar.py` e mover a sidebar. Planejado para `v0.4`.
-4. Criar `ui/overview.py` e mover os cards principais. Planejado para `v0.4`.
-5. Mover Processos, Disco, Serviços e Preferências em etapas separadas. Planejado para `v0.4`.
-6. Atualizar documentação técnica e validações a cada etapa.
+3. Criar `ui/sidebar.py` e mover a sidebar. Concluído na `v0.4`.
+4. Criar `ui/preferences.py` e mover o painel de preferências. Concluído na `v0.4`.
+5. Criar `ui/overview.py` e mover os cards principais. Concluído na `v0.4`.
+6. Implementar reorganização manual dos cards após `overview.py`, com controles simples e persistência em `config.json`. Concluído na `v0.4`.
+7. Mover Processos para `ui/processes.py`. Concluído na `v0.4`.
+8. Mover Disco para `ui/disk.py`. Concluído na `v0.4`.
+9. Mover Serviços para `ui/services.py`. Concluído na `v0.4`.
+10. Atualizar documentação técnica e validações a cada etapa.
 
 ## Fora do Escopo Inicial
 
@@ -143,11 +147,13 @@ Esses pontos podem voltar ao roadmap depois que a base interna estiver mais simp
 
 ## Estado Atual
 
-A primeira etapa já foi aplicada:
+A reestruturação prevista para a série `v0.4` foi aplicada:
 
 - `src/syssense/resources/styles.css` concentra os estilos GTK.
 - `src/syssense/formatters.py` concentra formatação de unidades e textos de métricas.
 - `tests/test_formatters.py` cobre os formatadores extraídos.
 - `pyproject.toml` inclui os recursos CSS no pacote instalável.
+- `src/syssense/ui/` concentra os principais componentes visuais da aplicação.
+- `src/syssense/window.py` permanece como coordenador da janela, callbacks, threading e atualização geral.
 
-As próximas etapas estão registradas em `docs/roadmap-v0.4.md` e devem focar na divisão gradual de `window.py` em módulos de UI menores.
+Os itens que ficaram fora do escopo, como temas configuráveis, gráficos históricos, RPM/COPR e arrastar e soltar para cards, devem ser reavaliados em roadmaps futuros.

@@ -26,6 +26,11 @@
   </categories>
   <url type="homepage">https://github.com/Marcos-VOC/SysSense</url>
   <releases>
+    <release version="0.4.0" date="2026-06-07">
+      <description>
+        <p>Reestruturação interna da interface em módulos menores, reorganização manual dos cards, seletor de armazenamento mais previsível e correções nos painéis internos.</p>
+      </description>
+    </release>
     <release version="0.3.4" date="2026-06-07">
       <description>
         <p>Preferências locais, seleção de cards visíveis, painéis internos de status/configurações, transições leves e início da reestruturação interna.</p>

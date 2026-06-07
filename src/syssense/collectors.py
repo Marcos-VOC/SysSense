@@ -304,11 +304,26 @@ def get_recent_logs(lines: int = 50) -> Dict[str, Any]:
         return {'logs': [], 'error': str(e)}
 
 
-def speedtest() -> Dict[str, Any]:
+def _friendly_speedtest_error(error: Exception) -> str:
+    """Converte erros do speedtest-cli em mensagem curta para a UI."""
+    raw_message = _clean_text(error, max_chars=220)
+    lowered = raw_message.lower()
+    if any(term in lowered for term in ("timed out", "timeout", "tempo")):
+        return "Tempo esgotado ao testar a internet. Tente novamente em instantes."
+    if any(term in lowered for term in ("name or service", "dns", "temporary failure")):
+        return "Não foi possível resolver o servidor de teste. Verifique a conexão ou DNS."
+    if any(term in lowered for term in ("403", "forbidden", "config")):
+        return "O servidor de teste recusou a configuração. Tente novamente mais tarde."
+    if any(term in lowered for term in ("network is unreachable", "connection", "urlopen")):
+        return "Não foi possível conectar ao servidor de teste."
+    return raw_message or "Falha desconhecida no teste de internet."
+
+
+def speedtest(timeout: int = 12) -> Dict[str, Any]:
     """Executa teste de velocidade (operação pesada, sempre em thread)."""
     try:
         from speedtest import Speedtest
-        st = Speedtest()
+        st = Speedtest(timeout=timeout, secure=True)
         st.get_servers([])
         st.get_best_server()
         st.download()
@@ -325,4 +340,4 @@ def speedtest() -> Dict[str, Any]:
     except ImportError:
         return {'success': False, 'error': 'speedtest-cli não instalado'}
     except Exception as e:
-        return {'success': False, 'error': str(e)}
+        return {'success': False, 'error': _friendly_speedtest_error(e)}
