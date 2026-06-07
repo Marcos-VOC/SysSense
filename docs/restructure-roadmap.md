@@ -1,6 +1,6 @@
 # Plano de Reestruturação Interna
 
-Este documento registra ideias aprovadas para melhorar a organização técnica do SysSense depois da série `v0.3.x`.
+Este documento registra ideias aprovadas para melhorar a organização técnica do SysSense a partir da série `v0.4.x`.
 
 O objetivo é deixar o projeto mais fácil de manter sem aumentar o peso do aplicativo, sem mudar a proposta native-first e sem transformar a interface em algo mais complexo do que precisa ser.
 
@@ -126,9 +126,9 @@ Decisão atual: manter a UI em Python por enquanto e priorizar CSS/formatadores/
 
 1. Extrair `formatters.py` com testes. Concluído na primeira etapa de reestruturação.
 2. Extrair `styles.css` sem alterar aparência. Concluído na primeira etapa de reestruturação.
-3. Criar `ui/sidebar.py` e mover a sidebar.
-4. Criar `ui/overview.py` e mover os cards principais.
-5. Mover Processos, Disco, Serviços e Preferências em etapas separadas.
+3. Criar `ui/sidebar.py` e mover a sidebar. Planejado para `v0.4`.
+4. Criar `ui/overview.py` e mover os cards principais. Planejado para `v0.4`.
+5. Mover Processos, Disco, Serviços e Preferências em etapas separadas. Planejado para `v0.4`.
 6. Atualizar documentação técnica e validações a cada etapa.
 
 ## Fora do Escopo Inicial
@@ -150,4 +150,4 @@ A primeira etapa já foi aplicada:
 - `tests/test_formatters.py` cobre os formatadores extraídos.
 - `pyproject.toml` inclui os recursos CSS no pacote instalável.
 
-As próximas etapas devem focar na divisão gradual de `window.py` em módulos de UI menores.
+As próximas etapas estão registradas em `docs/roadmap-v0.4.md` e devem focar na divisão gradual de `window.py` em módulos de UI menores.

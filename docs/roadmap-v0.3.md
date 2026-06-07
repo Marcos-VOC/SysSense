@@ -49,10 +49,11 @@ Fora do escopo: gráficos históricos, filtros avançados de logs e ordenação 
 - Não implementar temas visuais nesta série.
 - Não implementar reorganização manual de ordem dos cards.
 
-## Pós-v0.3
+## Movido para v0.4
 
-- Atualizar a especificação original em `.docx` com o estado atual do projeto.
-- Gerar um novo documento, preservando o original como base histórica.
-- Seguir a reestruturação interna incremental documentada em `docs/restructure-roadmap.md`.
-- Reavaliar RPM/COPR quando a instalação nativa estiver suficientemente estável.
-- Avaliar temas visuais prontos somente depois da personalização de conteúdo estar madura.
+- Dividir `window.py` em módulos menores de UI.
+- Criar pacote `src/syssense/ui/`.
+- Mover sidebar, dashboard, processos, disco, serviços e preferências em etapas.
+- Manter temas visuais, reorganização manual de cards, RPM/COPR e IA externa fora do escopo inicial.
+
+Detalhes estão em `docs/roadmap-v0.4.md` e `docs/restructure-roadmap.md`.

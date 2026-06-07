@@ -28,7 +28,7 @@ A partir desta série:
 - `src/syssense/resources/styles.css` concentra estilos GTK;
 - `pyproject.toml` inclui o CSS como recurso do pacote instalável.
 
-`src/syssense/window.py` ainda concentra a maior parte da interface. A divisão em módulos menores fica documentada em `docs/restructure-roadmap.md` e deve acontecer em etapas futuras.
+`src/syssense/window.py` ainda concentra a maior parte da interface. A divisão em módulos menores foi movida para a série `v0.4` e fica documentada em `docs/roadmap-v0.4.md` e `docs/restructure-roadmap.md`.
 
 ## Validação Recomendada
 
@@ -50,6 +50,7 @@ find . -type d -name __pycache__ -prune -exec rm -rf {} +
 
 ## Fora do Escopo
 
+- divisão completa de `window.py` em módulos de UI;
 - temas visuais configuráveis;
 - reorganização manual dos cards;
 - gráficos históricos;

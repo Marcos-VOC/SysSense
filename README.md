@@ -194,6 +194,7 @@ SysSense/
 │   ├── release-v0.2.md
 │   ├── release-v0.3.md
 │   ├── roadmap-v0.3.md
+│   ├── roadmap-v0.4.md
 │   ├── restructure-roadmap.md
 │   └── testing.md
 ├── packaging/
@@ -245,7 +246,7 @@ A única ação de rede intencional é o teste de velocidade, iniciado manualmen
 - `v0.2.0`: alertas visuais, rede em tempo real, diagnóstico automático e UX melhor nas abas técnicas.
 - `v0.2.1`: painel de status, testes leves, documentação revisada e estabilização para publicação no GitHub.
 - `v0.3.x`: instalação nativa refinada, testes ampliados, monitoramento mais claro, preferências locais e personalização dos cards.
-- Pós-`v0.3`: reestruturação interna incremental documentada em `docs/restructure-roadmap.md`.
+- `v0.4.x`: reestruturação interna da interface em módulos menores, documentada em `docs/roadmap-v0.4.md` e `docs/restructure-roadmap.md`.
 
 ## Licença
 
