@@ -6,7 +6,9 @@ O objetivo é deixar o projeto mais fácil de manter sem aumentar o peso do apli
 
 ## Motivação
 
-O SysSense cresceu rápido entre as versões `v0.1` e `v0.3`. A interface, os estilos e parte da lógica de atualização ainda ficam concentrados em `src/syssense/window.py`, o que funcionou bem para validar o produto, mas tende a dificultar manutenção conforme novas telas, preferências e alertas forem adicionados.
+O SysSense cresceu rápido entre as versões `v0.1` e `v0.3`. Na série `v0.4`, a interface foi dividida em módulos menores dentro de `src/syssense/ui/`, mantendo `src/syssense/window.py` como coordenador da janela, callbacks, threading e atualização geral.
+
+Este documento permanece como registro das decisões de reestruturação já aplicadas e dos limites que ainda devem guiar mudanças futuras.
 
 A reestruturação deve ser incremental. Cada etapa precisa manter o aplicativo funcionando e passar pelos testes antes de seguir para a próxima.
 

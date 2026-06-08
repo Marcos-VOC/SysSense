@@ -20,6 +20,7 @@ O objetivo foi reduzir a responsabilidade de `src/syssense/window.py`, separar t
 - reorganização manual dos cards da dashboard com persistência em `~/.config/syssense/config.json`;
 - ajustes nos painéis internos para fechar com `Esc` ou clique fora;
 - troca do seletor de partição do card de armazenamento para um menu interno mais previsível.
+- documentação técnica consolidada em `docs/project-spec.md` e `docs/maintenance-guide.md`.
 
 ## Organização Técnica
 
@@ -43,6 +44,12 @@ src/syssense/
 ```
 
 `window.py` ainda coordena coleta, threading, cache de dados e atualização geral da aplicação. Os módulos em `ui/` concentram a construção visual e helpers de renderização das telas.
+
+## Documentação da Série
+
+- `docs/project-spec.md`: especificação atual do SysSense na `v0.4.0`.
+- `docs/maintenance-guide.md`: guia detalhado para manutenção manual e evolução segura.
+- `docs/release-checklist.md`: sequência recomendada para validação, release e publicação.
 
 ## Validação Recomendada
 

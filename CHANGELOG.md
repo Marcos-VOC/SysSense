@@ -2,6 +2,14 @@
 
 Todas as mudanças relevantes do SysSense serão documentadas aqui.
 
+## [Não lançado]
+
+### Adicionado
+
+- Especificação atual do projeto em `docs/project-spec.md`.
+- Guia completo de manutenção manual em `docs/maintenance-guide.md`.
+- Referências aos novos documentos no README, checklist de release, guia de testes e documentação da `v0.4`.
+
 ## [0.4.0] - 2026-06-07
 
 ### Alterado

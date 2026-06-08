@@ -39,9 +39,9 @@ O SysSense avalia regras locais a cada atualização e mostra avisos sem exigir 
 |------|---------|---------|
 | Memória RAM | acima de 70% | acima de 85% |
 | Armazenamento | acima de 70% na maior partição | acima de 90% na maior partição |
-| CPU | acima de 80% | não há nível crítico na v0.3 |
-| Swap | acima de 50% | não há nível crítico na v0.3 |
-| Serviços | qualquer serviço systemd com falha | não há nível crítico na v0.3 |
+| CPU | acima de 80% | não há nível crítico na v0.4 |
+| Swap | acima de 50% | não há nível crítico na v0.4 |
+| Serviços | qualquer serviço systemd com falha | não há nível crítico na v0.4 |
 
 Quando um alerta está ativo, o indicador da sidebar muda de estado, o painel interno de status lista os itens detectados e os cards afetados recebem uma borda e uma mensagem curta.
 
@@ -192,7 +192,9 @@ SysSense/
 │   └── metainfo/           # metadados AppStream
 ├── docs/
 │   ├── flatpak-spike.md
+│   ├── maintenance-guide.md
 │   ├── native-install.md
+│   ├── project-spec.md
 │   ├── release-checklist.md
 │   ├── release-v0.1.md
 │   ├── release-v0.2.md
@@ -245,6 +247,14 @@ Depois de testar o empacotamento local, remova artefatos temporários:
 rm -rf /tmp/syssense-install-test build src/syssense.egg-info
 find . -type d -name __pycache__ -prune -exec rm -rf {} +
 ```
+
+## Documentação técnica
+
+- `docs/project-spec.md`: especificação atual do projeto.
+- `docs/maintenance-guide.md`: guia completo de estrutura, funcionamento e manutenção manual.
+- `docs/testing.md`: comandos de validação.
+- `docs/release-checklist.md`: checklist para fechar novas versões.
+- `SECURITY.md` e `PRIVACY.md`: limites de segurança, privacidade e rede.
 
 ## Segurança e privacidade
 

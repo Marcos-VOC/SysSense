@@ -12,6 +12,14 @@ Atualize a versão nos arquivos:
 - `CHANGELOG.md`;
 - `data/metainfo/br.com.syssense.metainfo.xml`.
 
+Se a release mudar comportamento ou arquitetura, revise também:
+
+- `docs/project-spec.md`;
+- `docs/maintenance-guide.md`;
+- `README.md`;
+- `SECURITY.md`, quando houver impacto de segurança;
+- `PRIVACY.md`, quando houver impacto em dados, rede ou armazenamento.
+
 ## 2. Rodar Validações
 
 ```bash
@@ -58,3 +66,7 @@ git push origin main --tags
 ```
 
 Substitua `vX.Y.Z` pela versão real.
+
+## 6. Documentos Externos
+
+Se houver uma especificação `.docx` em Downloads, gere uma nova versão a partir de `docs/project-spec.md` para preservar uma cópia editável fora do repositório.

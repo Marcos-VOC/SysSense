@@ -49,6 +49,23 @@ rm -rf build src/syssense.egg-info
 find src tests -type d -name __pycache__ -prune -exec rm -rf {} +
 ```
 
+## Conferência de Documentação
+
+Antes de fechar uma versão, verifique se os documentos principais seguem o estado real do projeto:
+
+```bash
+rg "Versão atual|v0\\.|0\\." README.md CHANGELOG.md docs data/metainfo/br.com.syssense.metainfo.xml
+```
+
+Documentos obrigatórios para revisão em mudanças grandes:
+
+- `README.md`;
+- `CHANGELOG.md`;
+- `docs/project-spec.md`;
+- `docs/maintenance-guide.md`;
+- `docs/release-checklist.md`;
+- `data/metainfo/br.com.syssense.metainfo.xml`.
+
 ## Lint Opcional
 
 `ruff` pode ser usado como ferramenta opcional de desenvolvimento, sem virar dependência do usuário final:
